@@ -1,0 +1,53 @@
+{
+  "name": "ecko-blockchain-client",
+  "version": "1.0.0",
+  "description": "Node.js Express REST application for the ECKO Blockchain",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "start": "node src/app",
+    "dev": "nodemon src/app",
+    "docker": "docker build -f Dockerfile -t ecko/client:latest ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kehm/ecko-blockchain-client"
+  },
+  "author": "kehm",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kehm/ecko-blockchain-client",
+  "dependencies": {
+    "ajv": "^6.12.6",
+    "axios": "^0.21.1",
+    "connect-session-sequelize": "^7.1.1",
+    "cookie-parser": "^1.4.5",
+    "cors": "^2.8.5",
+    "cron": "^1.8.2",
+    "dotenv": "^8.2.0",
+    "ejs": "^3.1.5",
+    "express": "^4.17.1",
+    "express-session": "^1.17.1",
+    "express-validator": "^6.6.1",
+    "fabric-ca-client": "2.2.5",
+    "fabric-network": "2.2.5",
+    "helmet": "^4.3.1",
+    "js-yaml": "^3.14.0",
+    "multer": "^1.4.2",
+    "nanoid": "^3.1.22",
+    "nodemailer": "^6.4.11",
+    "passport": "^0.4.1",
+    "passport-oauth2": "^1.5.0",
+    "pg": "^8.5.1",
+    "pg-hstore": "^2.3.3",
+    "pkcs11js": "^1.2.0",
+    "sequelize": "^6.3.5",
+    "sharp": "^0.28.1",
+    "uuid": "^8.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.25.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.22.1",
+    "nodemon": "^2.0.4"
+  }
+}

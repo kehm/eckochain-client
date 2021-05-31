@@ -1,0 +1,62 @@
+import nodemailer from 'nodemailer';
+import fs from 'fs';
+
+// Default email subjects
+export const mailSubject = {
+    appRestart: 'ECKO - The client application has restarted',
+    feedback: 'ECKO - A user has submitted feedback',
+    verifyEmail: 'ECKO - Please confirm your e-mail address',
+    newAffiliation: 'ECKO - New affiliation request',
+    affiliationChanged: 'ECKO - You have been assigned a new role',
+    newProposal: 'ECKO - You have a new pending contract proposal',
+    contractAccepted: 'ECKO - Your proposal has been accepted',
+    contractRejected: 'ECKO - Your proposal has been rejected',
+    newDownload: 'ECKO - A new user has downloaded your dataset',
+};
+
+// Default email bodies
+export const mailBody = {
+    appRestart: '<p>The client application has restarted</p>',
+};
+
+/**
+ * Create transporter object
+ */
+const createTransport = () => nodemailer.createTransport({
+    host: process.env.NODEMAILER_HOST,
+    port: process.env.NODEMAILER_PORT,
+    secure: false,
+    tls: {
+        rejectUnauthorized: false,
+    },
+});
+
+/**
+ * Send email
+ *
+ * @param {string} recipients Email address(es)
+ * @param {string} subject Email subject
+ * @param {string} template Email HTML template name
+ * @param  {...any} args Template replace strings
+ * @returns {Object} Nodemailer info
+ */
+export const sendMail = async (recipients, subject, body, template, ...args) => {
+    let htmlBody;
+    if (body) {
+        htmlBody = body;
+    } else {
+        htmlBody = fs.readFileSync(`${process.env.NODEMAILER_TEMPLATE_PATH}/${template}.html`, 'utf-8');
+        if (args) {
+            args.forEach((element, index) => {
+                htmlBody = htmlBody.replace(new RegExp(`string${index}`, 'g'), element);
+            });
+        }
+    }
+    const info = await createTransport().sendMail({
+        from: process.env.NODEMAILER_FROM,
+        to: recipients,
+        subject,
+        html: htmlBody,
+    });
+    return info;
+};

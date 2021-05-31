@@ -1,0 +1,610 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ECKO Survey/Resurvey Metadata",
+    "description": "A set of metadata for ECKO survey/resurvey datasets. The metadata is based on the Darwin Core (dwc) standard where applicable.",
+    "type": "object",
+    "required": [
+        "$schema",
+        "datasetId",
+        "institutionId",
+        "rightsHolder",
+        "status",
+        "createdAt",
+        "modified",
+        "survey",
+        "latestYearCollected",
+        "samplingProtocol",
+        "sampleSizeUnit",
+        "continents",
+        "countries",
+        "habitats",
+        "taxa"
+    ],
+    "properties": {
+        "$schema": {
+            "description": "The url to the schema that defines the structure of this data.",
+            "$ref": "#/definitions/url"
+        },
+        "datasetId": {
+            "description": "A unique identifier assigned to the dataset.",
+            "$comment": "dwc:datasetID",
+            "type": "string",
+            "examples": [
+                "OS-1900-1901-NO-99997",
+                "RE-1910-1911-NO-99998",
+                "CO-1920-1921-NO-99999"
+            ]
+        },
+        "description": {
+            "description": "A description or comment to the data.",
+            "type": "string",
+            "examples": [
+                "The dataset holds survey and resurvey data from a study in Hordaland."
+            ]
+        },
+        "institutionId": {
+            "description": "The id of the organization that publishes the data.",
+            "$comment": "dwc:institutionID",
+            "$ref": "#/definitions/organization"
+        },
+        "license": {
+            "description": "The url to the license under which the dataset is published.",
+            "$comment": "dwc:license",
+            "$ref": "#/definitions/url",
+            "examples": [
+                "https://creativecommons.org/licenses/by/4.0/"
+            ]
+        },
+        "bibliographicCitation": {
+            "description": "A bibliographic reference indicating this resource should be cited.",
+            "$comment": "dwc:bibliographicCitation",
+            "type": "string",
+            "examples": [
+                "John Smith. 2020. Title. ECKO Source: x Ref: y"
+            ]
+        },
+        "references": {
+            "description": "Related resources that are referenced or cited in the resource.",
+            "$comment": "dwc:references",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/url"
+            },
+            "examples": [
+                [
+                    "http://arctos.database.museum/guid/MVZ:Mamm:165861"
+                ],
+                [
+                    "http://arctos.database.museum/guid/MVZ:Mamm:165861",
+                    "http://www.catalogueoflife.org/annual-checklist/show_species_details.php?record_id=6197868"
+                ]
+            ]
+        },
+        "collectionId": {
+            "description": "The ID of the parent dataset from which this subset was derived.",
+            "$comment": "dwc:collectionID",
+            "type": "string",
+            "examples": [
+                "5d231b12-cv3v-da21-g24s-49djlbi385s7"
+            ]
+        },
+        "rightsHolder": {
+            "description": "The digital signature of the user that created this resource.",
+            "$comment": "dwc:rightsHolder",
+            "type": "string",
+            "examples": [
+                "gh934rerrRe3432gywDS45vdo24GNEe32"
+            ]
+        },
+        "recordedBy": {
+            "description": "The names of people that contributed to the data.",
+            "$comment": "dwc:recordedBy",
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "examples": [
+                "John Smith",
+                [
+                    "John Smith",
+                    "Jane Doe"
+                ]
+            ]
+        },
+        "contact": {
+            "description": "The person that is the main contact for the dataset.",
+            "$ref": "#/definitions/person"
+        },
+        "image": {
+            "description": "An illustrative image related to the dataset.",
+            "$ref": "#/definitions/mediaID"
+        },
+        "status": {
+            "description": "The current status of the dataset.",
+            "type": "string",
+            "examples": [
+                "active",
+                "inactive"
+            ]
+        },
+        "events": {
+            "description": "A log of events related to this dataset or metadata.",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/eventID"
+            }
+        },
+        "createdAt": {
+            "description": "The moment when the dataset was entered to the system.",
+            "type": "string",
+            "examples": [
+                "2020-01-01T00:00Z"
+            ]
+        },
+        "modified": {
+            "description": "The most recent moment when the metadata was changed.",
+            "$comment": "dwc:modified",
+            "type": "string",
+            "examples": [
+                "2020-01-01T00:00Z"
+            ]
+        },
+        "languages": {
+            "description": "The language of the resource.",
+            "$comment": "dwc:language",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "examples": [
+                [
+                    "en"
+                ],
+                [
+                    "en",
+                    "es"
+                ]
+            ]
+        },
+        "survey": {
+            "description": "Select whether the upload dataset original or resurvey survey data. Combination datasets are also permitted where files contain temporal survey data.",
+            "type": "string",
+            "examples": [
+                "original",
+                "resurvey",
+                "combination"
+            ]
+        },
+        "parentEventId": {
+            "description": "The unique identifier of the original survey dataset (only applicable for resurveys).",
+            "$comment": "dwc:parentEventID",
+            "type": "string",
+            "examples": [
+                "5d231b12-cv3v-da21-g24s-49djlbi385s7"
+            ]
+        },
+        "latestYearCollected": {
+            "description": "State the year in which the original or resurvey data was sampled. If sampling spanned multiple years use the latest sample year and complete the Field 'Earliest Sample Year’. If a ‘Combination’ Dataset is appended, use the latest sample year and complete the mandatory Field 'Earliest Sample Year’.",
+            "$comment": "dwc:latestDateCollected",
+            "type": "integer",
+            "examples": [
+                1990,
+                2020
+            ]
+        },
+        "earliestYearCollected": {
+            "description": "State the earliest year in which the original or resurvey data was sampled.  If a ‘Combination’ Dataset is appended, state the earliest sample year represented in the dataset.",
+            "$comment": "dwc:earliestDateCollected",
+            "type": "integer",
+            "examples": [
+                1990,
+                2020
+            ]
+        },
+        "samplingProtocol": {
+            "description": "Categorize the sampling procedure.",
+            "$comment": "dwc:samplingProtocol",
+            "type": "string",
+            "examples": [
+                "plots",
+                "transect",
+                "other"
+            ]
+        },
+        "samplingProtocolReference": {
+            "description": "Reference published methodology.",
+            "$ref": "#/definitions/url",
+            "examples": [
+                "https://doi.org/10.1111/j.1466-8238.2009.00467.x"
+            ]
+        },
+        "sampleSizeUnit": {
+            "description": "The unit of measurement of the size (time duration, length, area or volume) of a sample in a sampling event.",
+            "$comment": "dwc:sampleSizeUnit",
+            "type": "string",
+            "examples": [
+                "minute",
+                "hour",
+                "day",
+                "metre",
+                "square metre",
+                "cubic metre"
+            ]
+        },
+        "sampleSizeValue": {
+            "description": "A numeric value for a measurement of the size (time duration, length, area, or volume) of a sample in a sampling event.",
+            "$comment": "dwc:sampleSizeValue",
+            "type": "number",
+            "examples": [
+                0.5,
+                5,
+                10
+            ]
+        },
+        "plotNumber": {
+            "description": "A numeric value representing the number of unique sample units (plots, transects etc).",
+            "type": "integer",
+            "examples": [
+                50,
+                100
+            ]
+        },
+        "measurementRemarks": {
+            "description": "Comments or notes accompanying the sample measurements/sampling protocol.",
+            "$comment": "dwc:measurmentRemarks",
+            "type": "string",
+            "examples": [
+                "tip of tail is missing"
+            ]
+        },
+        "continents": {
+            "description": "The name of the continent in which the Location of Data Points occurs. For macroecological datasets multiple entries are permitted.",
+            "$comment": "dwc:continent",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "examples": [
+                [
+                    "Africa"
+                ],
+                [
+                    "Africa",
+                    "Europe",
+                    "South America"
+                ]
+            ]
+        },
+        "countries": {
+            "description": "The name of the country in which the Location of Data Points occurs. For macroecological datasets multiple entries are permitted.",
+            "$comment": "dwc:country",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "examples": [
+                [
+                    "Denmark"
+                ],
+                [
+                    "Denmark",
+                    "Norway",
+                    "Sweden"
+                ]
+            ]
+        },
+        "spatialExtent": {
+            "description": "Geographic coordinates representing the spatial extent of a spatial data frame.",
+            "type": "array",
+            "items": {
+                "type": "number"
+            },
+            "examples": [
+                [
+                    50.000000,
+                    50.000000
+                ]
+            ]
+        },
+        "geodeticDatum": {
+            "description": "The ellipsoid, geodetic datum, or spatial reference system (SRS) upon which the geographic coordinates (spatial extent) is based.",
+            "$comment": "dwc:geodeticDatum",
+            "type": "string",
+            "examples": [
+                "WGS84",
+                "UTM",
+                "GRS80"
+            ]
+        },
+        "locationRemarks": {
+            "description": "Comments or notes about the Location.",
+            "$comment": "dwc:locationRemarks",
+            "type": "string",
+            "examples": [
+                "under water since 2005"
+            ]
+        },
+        "habitats": {
+            "description": "A category or description of the habitat. For datasets spanning numerous habitats, multiple entries are permitted.",
+            "$comment": "dwc:habitat",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "examples": [
+                [
+                    "coastal grassland"
+                ],
+                [
+                    "coastal grassland",
+                    "oak-savanna"
+                ]
+            ]
+        },
+        "taxa": {
+            "description": "Categorise the organisms recorded in the dataset. For datasets spanning more than one taxa multiple taxonomic categories are permitted.",
+            "$comment": "dwc:taxon",
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "examples": [
+                [
+                    "vascular plants"
+                ],
+                [
+                    "vascular plants",
+                    "mammals"
+                ]
+            ]
+        },
+        "speciesNumber": {
+            "description": "A numeric value representing the total number of unique species recorded within the associated dataset.",
+            "type": "integer",
+            "examples": [
+                50,
+                100
+            ]
+        },
+        "geoReference": {
+            "description": "Geographic coordinates that represents the approximate location of where the survey took place.",
+            "type": "array",
+            "items": {
+                "type": "number"
+            },
+            "examples": [
+                [
+                    50.000000,
+                    50.000000
+                ]
+            ]
+        },
+        "dynamicProperties": {
+            "description": "Any additional properties.",
+            "$comment": "dwc:dynamicProperties",
+            "type": "array",
+            "items": {
+                "type": "object"
+            },
+            "examples": [
+                [
+                    {
+                        "natureOfID": "expert identification"
+                    },
+                    {
+                        "aspectHeading": 277,
+                        "slopeInDegrees": 6
+                    }
+                ]
+            ]
+        }
+    },
+    "definitions": {
+        "mediaID": {
+            "description": "String used as an internal ID for a media file.",
+            "type": "string",
+            "pattern": "^organization:[a-z0-9_]+$"
+        },
+        "organizationID": {
+            "description": "String used as an internal ID for an organization.",
+            "type": "string",
+            "pattern": "^organization:[a-z0-9_]+$"
+        },
+        "personID": {
+            "description": "String used as an internal ID for a person.",
+            "type": "string",
+            "pattern": "^person:[a-z0-9_]+$"
+        },
+        "relationID": {
+            "description": "String used as an internal ID for a relation.",
+            "type": "string",
+            "pattern": "^person:[a-z0-9_]+$"
+        },
+        "eventID": {
+            "description": "String used as an internal ID for an event.",
+            "type": "string",
+            "pattern": "^organization:[a-z0-9_]+$"
+        },
+        "media": {
+            "description": "Information about a media file.",
+            "type": "object",
+            "required": [
+                "id",
+                "fileName"
+            ],
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/mediaID"
+                },
+                "fileName": {
+                    "description": "The name of the file.",
+                    "type": "string",
+                    "examples": [
+                        "file.png"
+                    ]
+                },
+                "credits": {
+                    "description": "Credits to the owner of the media.",
+                    "type": "string",
+                    "examples": [
+                        "Image name, John Smith, 01.01.2020"
+                    ]
+                },
+                "license": {
+                    "description": "The url to the license under which the media is published.",
+                    "$ref": "#/definitions/url",
+                    "examples": [
+                        "https://creativecommons.org/licenses/by/4.0/"
+                    ]
+                }
+            }
+        },
+        "url": {
+            "description": "String formed as a url",
+            "type": "string",
+            "format": "uri"
+        },
+        "organization": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/organizationID"
+                },
+                "name": {
+                    "description": "Name of the organization",
+                    "type": "string"
+                },
+                "url": {
+                    "description": "Url to the organization home page.",
+                    "$ref": "#/definitions/url"
+                },
+                "contact": {
+                    "description": "The person that is the main contact point for the organization.",
+                    "$ref": "#/definitions/personID"
+                }
+            }
+        },
+        "person": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/personID"
+                },
+                "name": {
+                    "description": "Full name of the person",
+                    "type": "string"
+                },
+                "email": {
+                    "description": "Email address of the person",
+                    "type": "string",
+                    "format": "email"
+                },
+                "affiliation": {
+                    "description": "The organization that the person is affiliated with.",
+                    "$ref": "#/definitions/organizationID"
+                }
+            }
+        },
+        "relation": {
+            "type": "object",
+            "required": [
+                "id",
+                "subset",
+                "superset"
+            ],
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/relationID"
+                },
+                "relation": {
+                    "oneOf": [
+                        {
+                            "properties": {
+                                "subset": {
+                                    "description": "The UUID for the subset dataset.",
+                                    "type": "string",
+                                    "examples": [
+                                        "5d231b12-cv3v-da21-g24s-49djlbi385s7"
+                                    ]
+                                },
+                                "superset": {
+                                    "description": "The UUID for the superset dataset.",
+                                    "$comment": "This field is stored on-chain",
+                                    "type": "string",
+                                    "examples": [
+                                        "5d231b12-cv3v-da21-g24s-49djlbi385s7"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "properties": {
+                                "survey": {
+                                    "description": "The UUID for the survey dataset.",
+                                    "type": "string",
+                                    "examples": [
+                                        "5d231b12-cv3v-da21-g24s-49djlbi385s7"
+                                    ]
+                                },
+                                "resurvey": {
+                                    "description": "The UUID for the resurvey dataset.",
+                                    "$comment": "This field is stored on-chain",
+                                    "type": "string",
+                                    "examples": [
+                                        "5d231b12-cv3v-da21-g24s-49djlbi385s7"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "event": {
+            "type": "object",
+            "required": [
+                "id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/eventID"
+                },
+                "type": {
+                    "description": "The type of event that occurred.",
+                    "type": "string",
+                    "examples": [
+                        "approve",
+                        "reject"
+                    ]
+                },
+                "invokedBy": {
+                    "description": "The person that invoked the event.",
+                    "$ref": "#/definitions/personID"
+                },
+                "invokedAt": {
+                    "description": "The moment when the event occurred.",
+                    "type": "string",
+                    "examples": [
+                        "2020-01-01T00:00Z"
+                    ]
+                }
+            }
+        }
+    }
+}
