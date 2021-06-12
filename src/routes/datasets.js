@@ -6,7 +6,6 @@ import { parseFormData, createIds } from '../utils/form-data.js';
 import upload from '../middleware/upload.js';
 import Organization from '../database/models/Organization.js';
 import { createTransient, generateKey } from '../utils/encryption.js';
-import { createThumbnails, getMediaId } from '../utils/media.js';
 import { logError } from '../utils/logger.js';
 import removeFiles from '../utils/remove-files.js';
 import { getDataset, removeDataset, submitDataset } from '../fabric/dataset.js';
@@ -14,6 +13,8 @@ import createDataset from '../utils/create-dataset.js';
 import Dataset from '../database/models/Dataset.js';
 import invoke from '../fabric/invoke.js';
 import User from '../database/models/User.js';
+import Media from '../database/models/Media.js';
+import resizeImage from '../utils/resize-image.js';
 
 const router = express.Router();
 const { param, validationResult } = checkAPIs;
@@ -74,9 +75,7 @@ router.get('/:datasetId', isVerified, [
             if (organization) {
                 const dataset = await Dataset.findOne({
                     where: { id: req.params.datasetId, status: 'ACTIVE' },
-                    include: [
-                        { model: User },
-                    ],
+                    include: [{ model: User }],
                 });
                 if (dataset && dataset.ecko_user && dataset.status === 'ACTIVE') {
                     const fileBuffer = await getDataset(
@@ -144,17 +143,12 @@ router.post('/', isVerified, upload, (req, res) => {
         data.fileType = req.files.dataset[0].mimetype;
         const key = generateKey();
         promises.push(createTransient(req, key));
-        promises.push(new Promise((resolve, reject) => {
-            Organization.findByPk(req.user.organization).then((organization) => {
-                resolve(organization);
-            }).catch((err) => {
-                logError('Could not find user organization', err);
-                reject(err);
-            });
-        }));
+        promises.push(Organization.findByPk(req.user.organization));
         if (req.files.media && req.files.media.length === 1) {
-            promises.push(getMediaId(req.files.media[0].filename));
-            promises.push(createThumbnails(req.files.media[0]));
+            promises.push(Media.findOne({
+                where: { fileName: req.files.media[0].filename },
+            }));
+            promises.push(resizeImage(req.files.media[0], 128, 128, 90, 'thumbnail'));
         }
         Promise.all(promises).then((responses) => {
             submitDataset(data, responses[0], responses[1]).then(() => {

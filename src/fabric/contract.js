@@ -9,10 +9,10 @@ import Emails from '../database/models/Emails.js';
 /**
  * Create contract on blockchain, place in database and send email notification
  *
- * @param {*} datasetId Dataset ID
- * @param {*} proposal Contract proposal
- * @param {*} userId User ID
- * @param {*} organization Organization object
+ * @param {string} datasetId Dataset ID
+ * @param {string} proposal Contract proposal
+ * @param {string} userId User ID
+ * @param {Object} organization Organization object
  */
 export const createContract = async (datasetId, proposal, userId, organization) => {
     const transient = { invokedBy: Buffer.from(userId) };
@@ -75,11 +75,11 @@ export const createContract = async (datasetId, proposal, userId, organization) 
 /**
  * Resolve contract
  *
- * @param {*} contractId Contract ID
- * @param {*} accept True if accept, false if reject
- * @param {*} response Proposal response
- * @param {*} userId Resolver's user ID
- * @param {*} organization Organization object
+ * @param {string} contractId Contract ID
+ * @param {boolean} accept True if accept, false if reject
+ * @param {string} response Proposal response
+ * @param {string} userId Resolver's user ID
+ * @param {Object} organization Organization object
  */
 export const resolveContract = async (contractId, accept, response, userId, organization) => {
     const contract = await Contract.findByPk(

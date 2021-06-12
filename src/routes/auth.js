@@ -130,11 +130,7 @@ router.post('/profile', isAuthenticated, [
         const errors = validationResult(req);
         if (errors.isEmpty()) {
             const user = await User.findByPk(req.user.id, {
-                include: [
-                    {
-                        model: Emails,
-                    },
-                ],
+                include: [{ model: Emails }],
             });
             if (user) {
                 await updateUserEmail(req.user.id, req.body.email);

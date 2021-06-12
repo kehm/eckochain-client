@@ -1,7 +1,6 @@
 import sharp from 'sharp';
 import path from 'path';
 import Media from '../database/models/Media.js';
-import { logError } from './logger.js';
 
 /**
  * Resize image file
@@ -13,7 +12,7 @@ import { logError } from './logger.js';
  * @param {string} newName New file ending (to distinguish from existing file)
  * @returns {Object} Error
  */
-export const resizeImage = (
+const resizeImage = (
     file, width, height, quality, newName,
 ) => new Promise((resolve, reject) => {
     const name = file.filename.split('.')[0];
@@ -54,31 +53,4 @@ export const resizeImage = (
     }).catch((err) => reject(err));
 });
 
-/**
- * Create media thumnails
- *
- * @param {Object} file Media file
- * @returns {Object} Error
- */
-export const createThumbnails = (file) => new Promise((resolve, reject) => {
-    resizeImage(file, 128, 128, 90, 'thumbnail').then(() => {
-        resolve();
-    }).catch((err) => {
-        logError('Could not create image thumbnails', err);
-        reject(err);
-    });
-});
-
-/**
- * Get media ID for file name
- *
- * @param {String} fileName File name
- * @returns {Object} Media object
- */
-export const getMediaId = (fileName) => new Promise((resolve, reject) => {
-    Media.findOne({
-        where: { fileName },
-    }).then((media) => {
-        resolve(media);
-    }).catch((err) => reject(err));
-});
+export default resizeImage;
