@@ -11,9 +11,10 @@ import {
 import { logError } from '../utils/logger.js';
 import Emails from '../database/models/Emails.js';
 import Token from '../database/models/Token.js';
+import isValidInput from '../middleware/is-valid.js';
 
 const router = express.Router();
-const { body, validationResult } = checkAPIs;
+const { body } = checkAPIs;
 const { Strategy: OAuth2Strategy } = oauth2;
 
 /**
@@ -71,49 +72,46 @@ router.get('/orcid/callback', passport.authenticate('oauth2', { failureRedirect:
  */
 router.get('/verify/:token', [
     param('token').isString().isLength({ min: 32, max: 32 }),
-], async (req, res) => {
+], isValidInput, async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            const token = await Token.findOne({
-                where: {
-                    token: req.params.token,
-                    type: 'VERIFY_EMAIL',
-                },
-            });
-            if (token) {
-                if (Date.parse(new Date()) < Date.parse(token.expiresAt)) {
-                    const email = await Emails.findOne({
-                        where: {
-                            userId: token.userId,
-                            status: 'VERIFIED',
-                        },
-                    });
-                    if (email) await email.destroy();
-                    const updated = await Emails.update({
+        const token = await Token.findOne({
+            where: {
+                token: req.params.token,
+                type: 'VERIFY_EMAIL',
+            },
+        });
+        if (token) {
+            if (Date.parse(new Date()) < Date.parse(token.expiresAt)) {
+                const email = await Emails.findOne({
+                    where: {
+                        userId: token.userId,
+                        status: 'VERIFIED',
+                    },
+                });
+                if (email) await email.destroy();
+                const updated = await Emails.update({
+                    status: 'VERIFIED',
+                }, {
+                    where: {
+                        userId: token.userId,
+                        status: 'NOT_VERIFIED',
+                    },
+                });
+                if (updated.length > 0) {
+                    await User.update({
                         status: 'VERIFIED',
                     }, {
                         where: {
-                            userId: token.userId,
+                            id: token.userId,
                             status: 'NOT_VERIFIED',
                         },
                     });
-                    if (updated.length > 0) {
-                        await User.update({
-                            status: 'VERIFIED',
-                        }, {
-                            where: {
-                                id: token.userId,
-                                status: 'NOT_VERIFIED',
-                            },
-                        });
-                        await token.destroy();
-                        res.clearCookie(process.env.SESSION_NAME);
-                        res.redirect(`${process.env.ECKO_WEB_URL}/verified`);
-                    } else res.sendStatus(404);
-                } else res.redirect(`${process.env.ECKO_WEB_URL}/token-expired`);
+                    await token.destroy();
+                    res.clearCookie(process.env.SESSION_NAME);
+                    res.redirect(`${process.env.ECKO_WEB_URL}/verified`);
+                } else res.sendStatus(404);
             } else res.redirect(`${process.env.ECKO_WEB_URL}/token-expired`);
-        } else res.status(400).json({ errors: errors.array() });
+        } else res.redirect(`${process.env.ECKO_WEB_URL}/token-expired`);
     } catch (err) {
         logError('Could not handle token', err);
         res.sendStatus(500);
@@ -125,19 +123,16 @@ router.get('/verify/:token', [
  */
 router.post('/profile', isAuthenticated, [
     body('email').isEmail(),
-], async (req, res) => {
+], isValidInput, async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            const user = await User.findByPk(req.user.id, {
-                include: [{ model: Emails }],
-            });
-            if (user) {
-                await updateUserEmail(req.user.id, req.body.email);
-                if (!user.user_email || user.user_email.status !== 'VERIFIED') setAuthCookie(res, req.user, req.body.email);
-                res.sendStatus(200);
-            } else res.sendStatus(404);
-        } else res.status(400).json({ errors: errors.array() });
+        const user = await User.findByPk(req.user.id, {
+            include: [{ model: Emails }],
+        });
+        if (user) {
+            await updateUserEmail(req.user.id, req.body.email);
+            if (!user.user_email || user.user_email.status !== 'VERIFIED') setAuthCookie(res, req.user, req.body.email);
+            res.sendStatus(200);
+        } else res.sendStatus(404);
     } catch (err) {
         logError('Could not register user', err);
         res.sendStatus(500);
@@ -149,32 +144,29 @@ router.post('/profile', isAuthenticated, [
  */
 router.post('/profile/reset', isAuthenticated, async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            const updated = await User.update({
-                email: null,
-            }, {
+        const updated = await User.update({
+            email: null,
+        }, {
+            where: {
+                id: req.user.id,
+                status: 'NOT_VERIFIED',
+            },
+        });
+        if (updated.length > 0) {
+            await Emails.destroy({
                 where: {
-                    id: req.user.id,
-                    status: 'NOT_VERIFIED',
+                    userId: req.user.id,
                 },
             });
-            if (updated.length > 0) {
-                await Emails.destroy({
-                    where: {
-                        userId: req.user.id,
-                    },
-                });
-                await Token.destroy({
-                    where: {
-                        userId: req.user.id,
-                        type: 'VERIFY_EMAIL',
-                    },
-                });
-                setAuthCookie(res, req.user);
-                res.sendStatus(200);
-            } else res.sendStatus(404);
-        } else res.status(400).json({ errors: errors.array() });
+            await Token.destroy({
+                where: {
+                    userId: req.user.id,
+                    type: 'VERIFY_EMAIL',
+                },
+            });
+            setAuthCookie(res, req.user);
+            res.sendStatus(200);
+        } else res.sendStatus(404);
     } catch (err) {
         logError('Could not register user', err);
         res.sendStatus(500);

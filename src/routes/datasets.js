@@ -15,9 +15,10 @@ import invoke from '../fabric/invoke.js';
 import User from '../database/models/User.js';
 import Media from '../database/models/Media.js';
 import resizeImage from '../utils/resize-image.js';
+import isValidInput from '../middleware/is-valid.js';
 
 const router = express.Router();
-const { param, validationResult } = checkAPIs;
+const { param } = checkAPIs;
 
 /**
  * Get all dataset metadata entries
@@ -65,33 +66,30 @@ router.get('/metadata/user/this', isVerified, async (req, res) => {
  */
 router.get('/:datasetId', isVerified, [
     param('datasetId').isString().isLength({ min: 1 }),
-], async (req, res) => {
+], isValidInput, async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            const organization = await Organization.findByPk(
-                req.user.organization || parseInt(process.env.FABRIC_DEFAULT_ORG, 10),
-            );
-            if (organization) {
-                const dataset = await Dataset.findOne({
-                    where: { id: req.params.datasetId, status: 'ACTIVE' },
-                    include: [{ model: User }],
-                });
-                if (dataset && dataset.ecko_user && dataset.status === 'ACTIVE') {
-                    const fileBuffer = await getDataset(
-                        req.params.datasetId,
-                        req.user.id,
-                        organization,
-                        dataset.policy,
-                        dataset.ecko_user,
-                    );
-                    const stream = Readable.from(fileBuffer);
-                    res.setHeader('content-type', 'application/octect-stream');
-                    res.attachment(dataset.fileInfo.fileName);
-                    stream.pipe(res);
-                } else res.sendStatus(404);
-            } else res.sendStatus(500);
-        } else res.status(400).json({ errors: errors.array() });
+        const organization = await Organization.findByPk(
+            req.user.organization || parseInt(process.env.FABRIC_DEFAULT_ORG, 10),
+        );
+        if (organization) {
+            const dataset = await Dataset.findOne({
+                where: { id: req.params.datasetId, status: 'ACTIVE' },
+                include: [{ model: User }],
+            });
+            if (dataset && dataset.ecko_user && dataset.status === 'ACTIVE') {
+                const fileBuffer = await getDataset(
+                    req.params.datasetId,
+                    req.user.id,
+                    organization,
+                    dataset.policy,
+                    dataset.ecko_user,
+                );
+                const stream = Readable.from(fileBuffer);
+                res.setHeader('content-type', 'application/octect-stream');
+                res.attachment(dataset.fileInfo.fileName);
+                stream.pipe(res);
+            } else res.sendStatus(404);
+        } else res.sendStatus(500);
     } catch (err) {
         logError('Could not get dataset file from blockchain', err);
         res.sendStatus(500);
@@ -103,28 +101,25 @@ router.get('/:datasetId', isVerified, [
  */
 router.put('/:datasetId', isVerified, upload, [
     param('datasetId').isString().isLength({ min: 1 }),
-], async (req, res) => {
+], isValidInput, async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            const dataset = await Dataset.findByPk(req.params.datasetId);
-            const organization = await Organization.findByPk(req.user.organization);
-            if (organization && dataset && dataset.status === 'ACTIVE' && dataset.metadata && dataset.policy) {
-                if (dataset.userId === req.user.id) {
-                    const data = parseFormData(req.body);
-                    data.datasetId = dataset.id;
-                    data.policyId = dataset.policy.policyId;
-                    await invoke(
-                        organization,
-                        process.env.FABRIC_CHAINCODE_NAME,
-                        'createMetadata',
-                        { invokedBy: Buffer.from(req.user.id) },
-                        JSON.stringify(data),
-                    );
-                    res.sendStatus(200);
-                } else res.sendStatus(403);
-            } else res.sendStatus(404);
-        } else res.status(400).json({ errors: errors.array() });
+        const dataset = await Dataset.findByPk(req.params.datasetId);
+        const organization = await Organization.findByPk(req.user.organization);
+        if (organization && dataset && dataset.status === 'ACTIVE' && dataset.metadata && dataset.policy) {
+            if (dataset.userId === req.user.id) {
+                const data = parseFormData(req.body);
+                data.datasetId = dataset.id;
+                data.policyId = dataset.policy.policyId;
+                await invoke(
+                    organization,
+                    process.env.FABRIC_CHAINCODE_NAME,
+                    'createMetadata',
+                    { invokedBy: Buffer.from(req.user.id) },
+                    JSON.stringify(data),
+                );
+                res.sendStatus(200);
+            } else res.sendStatus(403);
+        } else res.sendStatus(404);
     } catch (err) {
         res.sendStatus(500);
     }
@@ -177,16 +172,13 @@ router.post('/', isVerified, upload, (req, res) => {
  */
 router.delete('/:datasetId', isVerified, [
     param('datasetId').isString().isLength({ min: 1 }),
-], async (req, res) => {
+], isValidInput, async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            const organization = await Organization.findByPk(req.user.organization);
-            if (organization) {
-                await removeDataset(req.params.datasetId, req.user.id, organization);
-                res.sendStatus(200);
-            } else res.sendStatus(404);
-        } else res.status(400).json({ errors: errors.array() });
+        const organization = await Organization.findByPk(req.user.organization);
+        if (organization) {
+            await removeDataset(req.params.datasetId, req.user.id, organization);
+            res.sendStatus(200);
+        } else res.sendStatus(404);
     } catch (err) {
         logError('Could not delete dataset file', err);
         res.sendStatus(500);

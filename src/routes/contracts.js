@@ -10,32 +10,30 @@ import { createContract, resolveContract } from '../fabric/contract.js';
 import User from '../database/models/User.js';
 import parseContractLicenses from '../utils/contract.js';
 import Emails from '../database/models/Emails.js';
+import isValidInput from '../middleware/is-valid.js';
 
 const router = express.Router();
-const { body, param, validationResult } = checkAPIs;
+const { body, param } = checkAPIs;
 
 /**
  * Get contract for dataset
  */
 router.get('/dataset/:datasetId', isVerified, [
     param('datasetId').isString().isLength({ min: 1 }),
-], async (req, res) => {
+], isValidInput, async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            const contract = await Contract.findOne({
-                attributes: {
-                    exclude: ['userId'],
-                },
-                where: {
-                    datasetId: req.params.datasetId,
-                    userId: req.user.id,
-                },
-            });
-            if (contract) {
-                res.status(200).json(contract);
-            } else res.sendStatus(404);
-        } else res.status(400).json({ errors: errors.array() });
+        const contract = await Contract.findOne({
+            attributes: {
+                exclude: ['userId'],
+            },
+            where: {
+                datasetId: req.params.datasetId,
+                userId: req.user.id,
+            },
+        });
+        if (contract) {
+            res.status(200).json(contract);
+        } else res.sendStatus(404);
     } catch (err) {
         logError('Could not get contract for user', err);
         res.sendStatus(500);
@@ -161,21 +159,18 @@ router.get('/resolved/this', isVerified, async (req, res) => {
 router.post('/', isVerified, [
     body('datasetId').isString().isLength({ min: 1 }),
     body('proposal').isString().isLength({ min: 1 }),
-], async (req, res) => {
+], isValidInput, async (req, res) => {
     try {
-        const errors = validationResult(req);
-        if (errors.isEmpty()) {
-            const organization = await Organization.findByPk(
-                req.user.organization || parseInt(process.env.FABRIC_DEFAULT_ORG, 10),
-            );
-            await createContract(
-                req.body.datasetId,
-                req.body.proposal,
-                req.user.id,
-                organization,
-            );
-            res.sendStatus(200);
-        } else res.status(400).json({ errors: errors.array() });
+        const organization = await Organization.findByPk(
+            req.user.organization || parseInt(process.env.FABRIC_DEFAULT_ORG, 10),
+        );
+        await createContract(
+            req.body.datasetId,
+            req.body.proposal,
+            req.user.id,
+            organization,
+        );
+        res.sendStatus(200);
     } catch (err) {
         logError('Could not create contract proposal', err);
         res.sendStatus(500);
@@ -189,26 +184,23 @@ router.post('/resolve', isVerified, [
     body('contractId').isString().isLength({ min: 1 }),
     body('accept').isBoolean(),
     body('response').isString().optional(),
-], async (req, res) => {
-    const errors = validationResult(req);
+], isValidInput, async (req, res) => {
     try {
-        if (errors.isEmpty()) {
-            if (!req.body.accept && !req.body.response) {
-                res.sendStatus(400);
-            } else {
-                const organization = await Organization.findByPk(
-                    req.user.organization || parseInt(process.env.FABRIC_DEFAULT_ORG, 10),
-                );
-                await resolveContract(
-                    req.body.contractId,
-                    req.body.accept,
-                    req.body.response,
-                    req.user.id,
-                    organization,
-                );
-                res.sendStatus(200);
-            }
-        } else res.status(400).json({ errors: errors.array() });
+        if (!req.body.accept && !req.body.response) {
+            res.sendStatus(400);
+        } else {
+            const organization = await Organization.findByPk(
+                req.user.organization || parseInt(process.env.FABRIC_DEFAULT_ORG, 10),
+            );
+            await resolveContract(
+                req.body.contractId,
+                req.body.accept,
+                req.body.response,
+                req.user.id,
+                organization,
+            );
+            res.sendStatus(200);
+        }
     } catch (err) {
         logError('Could not resolve contract', err);
         res.sendStatus(500);
@@ -220,20 +212,17 @@ router.post('/resolve', isVerified, [
  */
 router.post('/withdraw', isVerified, [
     body('contractId').isString().isLength({ min: 1 }),
-], async (req, res) => {
-    const errors = validationResult(req);
+], isValidInput, async (req, res) => {
     try {
-        if (errors.isEmpty()) {
-            await Contract.update({
-                status: 'CANCELLED',
-            }, {
-                where: {
-                    id: req.body.contractId,
-                    userId: req.user.id,
-                },
-            });
-            res.sendStatus(200);
-        } else res.status(400).json({ errors: errors.array() });
+        await Contract.update({
+            status: 'CANCELLED',
+        }, {
+            where: {
+                id: req.body.contractId,
+                userId: req.user.id,
+            },
+        });
+        res.sendStatus(200);
     } catch (err) {
         logError('Could not withdraw contract', err);
         res.sendStatus(500);

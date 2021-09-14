@@ -4,11 +4,12 @@ import License from '../database/models/License.js';
 import Organization from '../database/models/Organization.js';
 import Role from '../database/models/Role.js';
 import isAdmin from '../middleware/is-admin.js';
+import isValidInput from '../middleware/is-valid.js';
 import { logError } from '../utils/logger.js';
 import { sendMail, mailSubject } from '../utils/mailer.js';
 
 const router = express.Router();
-const { param, body, validationResult } = checkAPIs;
+const { param, body } = checkAPIs;
 
 /**
  * Get all organization entries
@@ -73,29 +74,26 @@ router.post('/feedback', [
     }),
     body('email').isEmail(),
     body('message').notEmpty(),
-], (req, res) => {
-    const errors = validationResult(req);
-    if (errors.isEmpty()) {
-        const htmlBody = '<h1>Feedback submission</h1>'
-            + '<dl>'
-            + '<dt>Type: </dt>'
-            + `<dd>${req.body.type}</dd>`
-            + '</dl>'
-            + '<dl>'
-            + '<dt>Email: </dt>'
-            + `<dd>${req.body.email}</dd>`
-            + '</dl>'
-            + '<dl>'
-            + '<dt>Message: </dt>'
-            + `<dd>${req.body.message}</dd>`
-            + '</dl>';
-        sendMail(process.env.EMAIL_ECKO_CONTACT, mailSubject.feedback, htmlBody).then(() => {
-            res.sendStatus(200);
-        }).catch(() => {
-            logError('Could not send feedback notification email');
-            res.sendStatus(500);
-        });
-    } else res.status(400).json({ errors: errors.array() });
+], isValidInput, (req, res) => {
+    const htmlBody = '<h1>Feedback submission</h1>'
+        + '<dl>'
+        + '<dt>Type: </dt>'
+        + `<dd>${req.body.type}</dd>`
+        + '</dl>'
+        + '<dl>'
+        + '<dt>Email: </dt>'
+        + `<dd>${req.body.email}</dd>`
+        + '</dl>'
+        + '<dl>'
+        + '<dt>Message: </dt>'
+        + `<dd>${req.body.message}</dd>`
+        + '</dl>';
+    sendMail(process.env.EMAIL_ECKO_CONTACT, mailSubject.feedback, htmlBody).then(() => {
+        res.sendStatus(200);
+    }).catch(() => {
+        logError('Could not send feedback notification email');
+        res.sendStatus(500);
+    });
 });
 
 export default router;

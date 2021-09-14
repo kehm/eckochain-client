@@ -18,7 +18,7 @@
   "homepage": "https://github.com/kehm/ecko-blockchain-client",
   "dependencies": {
     "ajv": "^6.12.6",
-    "axios": "^0.21.1",
+    "axios": "^0.21.4",
     "connect-session-sequelize": "^7.1.1",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
