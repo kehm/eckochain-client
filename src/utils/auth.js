@@ -59,9 +59,7 @@ export const createUserIfNotExists = async (accessToken, refreshToken, params) =
         status: 'NOT_VERIFIED',
     };
     const existingUser = await findUser(newUser.orcid);
-    if (existingUser) {
-        return existingUser;
-    }
+    if (existingUser) return existingUser;
     logInfo('A new user has signed in');
     await User.create(newUser);
     const user = await findUser(newUser.orcid);

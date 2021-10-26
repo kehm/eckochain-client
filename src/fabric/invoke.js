@@ -14,7 +14,7 @@ const { Gateway, Wallets } = fabricNetwork;
  * @param {...any} args Function arguments
  */
 const invoke = async (organization, chaincode, func, transient, ...args) => {
-    const connectionProfile = yaml.safeLoad(fs.readFileSync(
+    const connectionProfile = yaml.load(fs.readFileSync(
         `${process.env.CONFIG_PATH}/connection-profiles/${organization.connectionProfile}`,
         'utf8',
     ));

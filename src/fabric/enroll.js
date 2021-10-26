@@ -12,7 +12,7 @@ const { Wallets } = fabricNetwork;
  * @param {Object} organization Organization object
  */
 export const enrollAdmin = async (organization) => {
-    const connectionProfile = yaml.safeLoad(fs.readFileSync(`${process.env.CONFIG_PATH}/connection-profiles/${organization.connectionProfile}`, 'utf8'));
+    const connectionProfile = yaml.load(fs.readFileSync(`${process.env.CONFIG_PATH}/connection-profiles/${organization.connectionProfile}`, 'utf8'));
     const organizationProfile = connectionProfile.organizations[organization.fabricName];
     const wallet = await Wallets.newFileSystemWallet(process.env.WALLET_PATH);
     const caInfo = connectionProfile.certificateAuthorities[
@@ -47,7 +47,7 @@ export const enrollAdmin = async (organization) => {
  * @param {Object} organization Organization object
  */
 export const enrollClient = async (organization) => {
-    const connectionProfile = yaml.safeLoad(fs.readFileSync(`${process.env.CONFIG_PATH}/connection-profiles/${organization.connectionProfile}`, 'utf8'));
+    const connectionProfile = yaml.load(fs.readFileSync(`${process.env.CONFIG_PATH}/connection-profiles/${organization.connectionProfile}`, 'utf8'));
     const organizationProfile = connectionProfile.organizations[organization.fabricName];
     const wallet = await Wallets.newFileSystemWallet(process.env.WALLET_PATH);
     const identity = await wallet.get(organization.clientIdentity);

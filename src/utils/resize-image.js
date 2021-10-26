@@ -23,27 +23,31 @@ const resizeImage = (
                     sharp(file.path)
                         .resize(width, height)
                         .jpeg({ quality })
-                        .toFile(path.resolve(file.destination, `${name}-${newName}.jpeg`)).then(() => {
+                        .toFile(path.resolve(file.destination, `${name}-${newName}.jpeg`))
+                        .then(() => {
                             media.update({
                                 thumbnailName: `${name}-${newName}.jpeg`,
                                 thumbnailPath: `${file.destination}/${name}-${newName}.jpeg`,
                             }).then(() => {
                                 resolve();
                             }).catch((err) => reject(err));
-                        }).catch((err) => reject(err));
+                        })
+                        .catch((err) => reject(err));
                     break;
                 case 'image/png':
                     sharp(file.path)
                         .resize(width, height)
                         .png({ quality })
-                        .toFile(path.resolve(file.destination, `${name}-${newName}.png`)).then(() => {
+                        .toFile(path.resolve(file.destination, `${name}-${newName}.png`))
+                        .then(() => {
                             media.update({
                                 thumbnailName: `${name}-${newName}.png`,
                                 thumbnailPath: `${file.destination}${name}-${newName}.png`,
                             }).then(() => {
                                 resolve();
                             }).catch((err) => reject(err));
-                        }).catch((err) => reject(err));
+                        })
+                        .catch((err) => reject(err));
                     break;
                 default:
                     reject();

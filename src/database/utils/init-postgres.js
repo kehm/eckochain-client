@@ -166,9 +166,11 @@ const initDefaults = async () => new Promise((resolve, reject) => {
  * Sync and populate tables
  */
 const initPostgres = async () => {
-    await postgres.sync({ force: process.env.POSTGRES_FORCE === 'true' });
+    if (process.env.POSTGRES_INIT === 'true') {
+        await postgres.sync({ force: process.env.POSTGRES_FORCE === 'true' });
+        await initDefaults();
+    }
     await initAssociations();
-    await initDefaults();
     postgres.query('ALTER SEQUENCE media_media_id_seq RESTART WITH 10000;');
 };
 

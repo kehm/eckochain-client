@@ -207,24 +207,16 @@ router.post('/token/email', isAuthenticated, async (req, res) => {
             },
         });
         if (emails.length === 1) {
-            const token = await Token.findOne({
+            const tokens = await Token.findAll({
                 where: {
                     userId: req.user.id,
                     type: 'VERIFY_EMAIL',
                 },
             });
-            if (token) {
-                if (token.expiresAt) {
-                    if (Date.parse(new Date()) < Date.parse(token.expiresAt)) {
-                        await token.destroy();
-                        await createEmailToken(req.user.id, req.user.email);
-                        res.sendStatus(200);
-                    } else res.sendStatus(403);
-                } else res.sendStatus(403);
-            } else {
+            if (tokens.length < 10) {
                 await createEmailToken(req.user.id, req.user.email);
                 res.sendStatus(200);
-            }
+            } else res.sendStatus(400);
         } else res.sendStatus(400);
     } catch (err) {
         logError('Could not create new token', err);

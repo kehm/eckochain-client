@@ -13,7 +13,7 @@ const { Gateway, Wallets } = fabricNetwork;
  * @param {string} queryString Query string
  */
 const query = async (organization, chaincode, func, queryString) => {
-    const connectionProfile = yaml.safeLoad(fs.readFileSync(
+    const connectionProfile = yaml.load(fs.readFileSync(
         `${process.env.CONFIG_PATH}/connection-profiles/${organization.connectionProfile}`,
         'utf8',
     ));
