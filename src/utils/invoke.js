@@ -45,7 +45,9 @@ const invoke = async (organization, chaincode, func, transient, ...args) => {
         let result;
         if (transient) {
             result = await contract.createTransaction(func).setTransient(transient).submit(...args);
-        } else result = await contract.submitTransaction(func, ...args);
+        } else {
+            result = await contract.submitTransaction(func, ...args);
+        }
         return Promise.resolve(result);
     } catch (err) {
         return Promise.reject(err);

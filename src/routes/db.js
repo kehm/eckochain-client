@@ -1,12 +1,11 @@
 import express from 'express';
 import checkAPIs from 'express-validator';
 import License from '../database/models/License.js';
-import Organization from '../database/models/Organization.js';
 import Role from '../database/models/Role.js';
 import isAdmin from '../middleware/is-admin.js';
 import isValidInput from '../middleware/is-valid.js';
+import { getOrganization, getOrganizations, sendFeedbackConfirmation } from '../services/db.js';
 import { logError } from '../utils/logger.js';
-import { sendMail, mailSubject } from '../utils/mailer.js';
 
 const router = express.Router();
 const { param, body } = checkAPIs;
@@ -14,15 +13,13 @@ const { param, body } = checkAPIs;
 /**
  * Get all organization entries
  */
-router.get('/organizations', (req, res) => {
-    Organization.findAll({
-        attributes: ['id', 'name', 'abbreviation', 'homeUrl'],
-        where: {
-            status: 'ACTIVE',
-        },
-    }).then((orgs) => {
+router.get('/organizations', async (req, res) => {
+    try {
+        const orgs = await getOrganizations();
         res.status(200).json(orgs);
-    }).catch(() => res.sendStatus(500));
+    } catch (err) {
+        res.sendStatus(500);
+    }
 });
 
 /**
@@ -30,36 +27,41 @@ router.get('/organizations', (req, res) => {
  */
 router.get('/organizations/:id', [
     param('id').isString().isLength({ min: 1 }),
-], (req, res) => {
-    Organization.findOne({
-        attributes: ['id', 'name', 'abbreviation', 'homeUrl'],
-        where: {
-            id: req.params.id,
-            status: 'ACTIVE',
-        },
-    }).then((org) => {
+], async (req, res) => {
+    try {
+        const org = await getOrganization(req.params.id);
         if (org) {
             res.status(200).json(org);
-        } else res.sendStatus(404);
-    }).catch(() => res.status(422).json({ error: 'Invalid argument' }));
+        } else {
+            res.sendStatus(404);
+        }
+    } catch (err) {
+        res.status(422).json({ error: 'Invalid argument' });
+    }
 });
 
 /**
  * Get all licenses entries
  */
-router.get('/licenses', (req, res) => {
-    License.findAll().then((licenses) => {
+router.get('/licenses', async (req, res) => {
+    try {
+        const licenses = await License.findAll();
         res.status(200).json(licenses);
-    }).catch(() => res.sendStatus(500));
+    } catch (err) {
+        res.sendStatus(500);
+    }
 });
 
 /**
  * Get all roles
  */
-router.get('/roles', isAdmin, (req, res) => {
-    Role.findAll().then((roles) => {
+router.get('/roles', isAdmin, async (req, res) => {
+    try {
+        const roles = await Role.findAll();
         res.status(200).json(roles);
-    }).catch(() => res.sendStatus(500));
+    } catch (err) {
+        res.sendStatus(500);
+    }
 });
 
 /**
@@ -74,26 +76,18 @@ router.post('/feedback', [
     }),
     body('email').isEmail(),
     body('message').notEmpty(),
-], isValidInput, (req, res) => {
-    const htmlBody = '<h1>Feedback submission</h1>'
-        + '<dl>'
-        + '<dt>Type: </dt>'
-        + `<dd>${req.body.type}</dd>`
-        + '</dl>'
-        + '<dl>'
-        + '<dt>Email: </dt>'
-        + `<dd>${req.body.email}</dd>`
-        + '</dl>'
-        + '<dl>'
-        + '<dt>Message: </dt>'
-        + `<dd>${req.body.message}</dd>`
-        + '</dl>';
-    sendMail(process.env.EMAIL_ECKO_CONTACT, mailSubject.feedback, htmlBody).then(() => {
+], isValidInput, async (req, res) => {
+    try {
+        await sendFeedbackConfirmation(
+            req.body.type,
+            req.body.email,
+            req.body.message,
+        );
         res.sendStatus(200);
-    }).catch(() => {
+    } catch (err) {
         logError('Could not send feedback notification email');
         res.sendStatus(500);
-    });
+    }
 });
 
 export default router;

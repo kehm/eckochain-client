@@ -6,7 +6,7 @@ const ALGORITHM = 'aes-256-ctr';
 /**
  * Encrypt using SHA-256
  *
- * @param {*} key Secret key
+ * @param {string} key Secret key
  * @param {Object} buffer File buffer
  */
 export const encryptSha256 = (key, buffer) => {
@@ -19,7 +19,7 @@ export const encryptSha256 = (key, buffer) => {
 /**
  * Decrypt SHA-256
  *
- * @param {*} key Secret key
+ * @param {string} key Secret key
  * @param {Object} encrypted Encrypted file
  * @returns {Object} Decrypted file buffer
  */
@@ -47,7 +47,7 @@ export const createSha256Hash = (value) => crypto.createHash('sha256').update(va
 /**
  * Encrypt file and create transient data for Fabric
  *
- * @param {*} encryptionKey Encryption key
+ * @param {string} encryptionKey Encryption key
  * @returns {Object} Object with invokedBy, key and ecrypted file
  */
 export const createTransient = (req, encryptionKey) => new Promise((resolve, reject) => {

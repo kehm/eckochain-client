@@ -3,21 +3,6 @@ import Media from '../database/models/Media.js';
 import { logError } from './logger.js';
 
 /**
- * Delete files from storage
- *
- * @param {Array} files File array
- */
-export const clearFileStorage = (files) => {
-    files.forEach((element) => {
-        if (fs.existsSync(process.env.DATASET_PATH + element.filename)) {
-            fs.unlink(process.env.DATASET_PATH + element.filename, (err) => {
-                if (err) logError(err);
-            });
-        }
-    });
-};
-
-/**
  * Remove file from disk
  *
  * @param {string} path File path
@@ -33,7 +18,7 @@ const removeFile = (path) => {
 /**
  * Remove files stored temporarily
  *
- * @param {Array} files Files to remove
+ * @param {Object} files Files to remove
  */
 const removeFiles = (files) => {
     if (files && files.dataset && files.dataset.length === 1) {

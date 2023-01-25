@@ -3,6 +3,21 @@ import path from 'path';
 import Media from '../database/models/Media.js';
 
 /**
+ * Set media thumbnail
+ *
+ * @param {Object} media Media object
+ * @param {string} fileName File name
+ * @param {string} destination File destination
+ * @param {string} extension File extension
+ */
+const setThumbnail = async (media, fileName, destination, extension) => {
+    await media.update({
+        thumbnailName: `${fileName}.${extension}`,
+        thumbnailPath: `${destination}/${fileName}.${extension}`,
+    });
+};
+
+/**
  * Resize image file
  *
  * @param {Object} file Image file
@@ -12,49 +27,36 @@ import Media from '../database/models/Media.js';
  * @param {string} newName New file ending (to distinguish from existing file)
  * @returns {Object} Error
  */
-const resizeImage = (
-    file, width, height, quality, newName,
-) => new Promise((resolve, reject) => {
+const resizeImage = async (file, width, height, quality, newName) => {
     const name = file.filename.split('.')[0];
-    Media.findOne({ where: { fileName: file.filename } }).then((media) => {
-        if (media) {
-            switch (file.mimetype) {
-                case 'image/jpeg':
-                    sharp(file.path)
-                        .resize(width, height)
-                        .jpeg({ quality })
-                        .toFile(path.resolve(file.destination, `${name}-${newName}.jpeg`))
-                        .then(() => {
-                            media.update({
-                                thumbnailName: `${name}-${newName}.jpeg`,
-                                thumbnailPath: `${file.destination}/${name}-${newName}.jpeg`,
-                            }).then(() => {
-                                resolve();
-                            }).catch((err) => reject(err));
-                        })
-                        .catch((err) => reject(err));
-                    break;
-                case 'image/png':
-                    sharp(file.path)
-                        .resize(width, height)
-                        .png({ quality })
-                        .toFile(path.resolve(file.destination, `${name}-${newName}.png`))
-                        .then(() => {
-                            media.update({
-                                thumbnailName: `${name}-${newName}.png`,
-                                thumbnailPath: `${file.destination}${name}-${newName}.png`,
-                            }).then(() => {
-                                resolve();
-                            }).catch((err) => reject(err));
-                        })
-                        .catch((err) => reject(err));
-                    break;
-                default:
-                    reject();
-                    break;
-            }
-        } else reject();
-    }).catch((err) => reject(err));
-});
+    const media = await Media.findOne({
+        where: {
+            fileName: file.filename,
+        },
+    });
+    if (media) {
+        const fileName = `${name}-${newName}`;
+        switch (file.mimetype) {
+            case 'image/jpeg':
+                await sharp(file.path)
+                    .resize(width, height)
+                    .jpeg({ quality })
+                    .toFile(path.resolve(file.destination, `${fileName}.jpeg`));
+                await setThumbnail(media, fileName, file.destination, 'jpeg');
+                break;
+            case 'image/png':
+                await sharp(file.path)
+                    .resize(width, height)
+                    .png({ quality })
+                    .toFile(path.resolve(file.destination, `${fileName}.png`));
+                await setThumbnail(media, fileName, file.destination, 'png');
+                break;
+            default:
+                throw new Error('Unsupported file type');
+        }
+    } else {
+        throw new Error('Media does not exist');
+    }
+};
 
 export default resizeImage;

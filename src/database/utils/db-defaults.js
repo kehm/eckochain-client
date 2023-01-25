@@ -68,6 +68,21 @@ export const defaultOrgStatus = [
     { name: 'INACTIVE', description: 'Inactive' },
 ];
 
+export const defaultOrgs = [
+    {
+        fabricName: 'eckochain.example.com',
+        mspId: 'eckochain.example.com-MSP',
+        name: 'Example',
+        abbreviation: 'Ex',
+        homeUrl: 'https://example.com',
+        connectionProfile: 'example-connection-profile.yaml',
+        clientIdentity: 'ecko.example.com',
+        clientSecret: 'secret',
+        status: 'ACTIVE',
+        contactEmail: 'user@example.com',
+    },
+];
+
 export const defaultLicenses = [
     {
         code: 'CCBY40',

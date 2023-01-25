@@ -2,20 +2,21 @@ import express from 'express';
 import checkAPIs from 'express-validator';
 import { Readable } from 'stream';
 import isVerified from '../middleware/is-verified.js';
-import { parseFormData, createIds } from '../utils/form-data.js';
 import upload from '../middleware/upload.js';
 import Organization from '../database/models/Organization.js';
-import { createTransient, generateKey } from '../utils/encryption.js';
 import { logError } from '../utils/logger.js';
 import removeFiles from '../utils/remove-files.js';
-import { getDataset, removeDataset, submitDataset } from '../fabric/dataset.js';
-import createDataset from '../utils/create-dataset.js';
 import Dataset from '../database/models/Dataset.js';
-import invoke from '../fabric/invoke.js';
-import User from '../database/models/User.js';
-import Media from '../database/models/Media.js';
-import resizeImage from '../utils/resize-image.js';
 import isValidInput from '../middleware/is-valid.js';
+import {
+    getDataset,
+    getDatasetById,
+    getDatasets,
+    getUserDatasets,
+    removeDataset,
+    setMetadata,
+    submitDatasetAndMetadata,
+} from '../services/datasets.js';
 
 const router = express.Router();
 const { param } = checkAPIs;
@@ -25,19 +26,7 @@ const { param } = checkAPIs;
  */
 router.get('/metadata', async (req, res) => {
     try {
-        const datasets = await Dataset.findAll({
-            where: {
-                status: 'ACTIVE',
-            },
-        });
-        const parsedDatasets = [];
-        datasets.forEach((element) => {
-            const dataset = element.get({ plain: true });
-            if (req.user && req.user.id === dataset.userId) dataset.contractStatus = 'ACCEPTED';
-            delete dataset.userId;
-            delete dataset.ecko_user_id;
-            parsedDatasets.push(dataset);
-        });
+        const datasets = await getDatasets(req.user);
         res.status(200).json(datasets);
     } catch (err) {
         res.sendStatus(500);
@@ -49,12 +38,7 @@ router.get('/metadata', async (req, res) => {
  */
 router.get('/metadata/user/this', isVerified, async (req, res) => {
     try {
-        const datasets = await Dataset.findAll({
-            where: {
-                userId: req.user.id,
-                status: 'ACTIVE',
-            },
-        });
+        const datasets = await getUserDatasets(req.user.id);
         res.status(200).json(datasets);
     } catch (err) {
         res.sendStatus(500);
@@ -72,11 +56,8 @@ router.get('/:datasetId', isVerified, [
             req.user.organization || parseInt(process.env.FABRIC_DEFAULT_ORG, 10),
         );
         if (organization) {
-            const dataset = await Dataset.findOne({
-                where: { id: req.params.datasetId, status: 'ACTIVE' },
-                include: [{ model: User }],
-            });
-            if (dataset && dataset.ecko_user && dataset.status === 'ACTIVE') {
+            try {
+                const dataset = await getDatasetById(req.params.datasetId);
                 const fileBuffer = await getDataset(
                     req.params.datasetId,
                     req.user.id,
@@ -88,8 +69,12 @@ router.get('/:datasetId', isVerified, [
                 res.setHeader('content-type', 'application/octect-stream');
                 res.attachment(dataset.fileInfo.fileName);
                 stream.pipe(res);
-            } else res.sendStatus(404);
-        } else res.sendStatus(500);
+            } catch (err) {
+                res.sendStatus(404);
+            }
+        } else {
+            res.sendStatus(500);
+        }
     } catch (err) {
         logError('Could not get dataset file from blockchain', err);
         res.sendStatus(500);
@@ -107,19 +92,14 @@ router.put('/:datasetId', isVerified, upload, [
         const organization = await Organization.findByPk(req.user.organization);
         if (organization && dataset && dataset.status === 'ACTIVE' && dataset.metadata && dataset.policy) {
             if (dataset.userId === req.user.id) {
-                const data = parseFormData(req.body);
-                data.datasetId = dataset.id;
-                data.policyId = dataset.policy.policyId;
-                await invoke(
-                    organization,
-                    process.env.FABRIC_CHAINCODE_NAME,
-                    'createMetadata',
-                    { invokedBy: Buffer.from(req.user.id) },
-                    JSON.stringify(data),
-                );
+                await setMetadata(req.body, dataset, req.user.id, organization);
                 res.sendStatus(200);
-            } else res.sendStatus(403);
-        } else res.sendStatus(404);
+            } else {
+                res.sendStatus(403);
+            }
+        } else {
+            res.sendStatus(404);
+        }
     } catch (err) {
         res.sendStatus(500);
     }
@@ -129,42 +109,19 @@ router.put('/:datasetId', isVerified, upload, [
  * Submit dataset to blockchain
  * Request Body: Metadata matching JSON schema
  */
-router.post('/', isVerified, upload, (req, res) => {
-    const promises = [];
+router.post('/', isVerified, upload, async (req, res) => {
     if (req.files && req.files.dataset && req.files.dataset.length === 1) {
-        let data = parseFormData(req.body);
-        data = createIds(data);
-        data.fileName = req.files.dataset[0].filename;
-        data.fileType = req.files.dataset[0].mimetype;
-        const key = generateKey();
-        promises.push(createTransient(req, key));
-        promises.push(Organization.findByPk(req.user.organization));
-        if (req.files.media && req.files.media.length === 1) {
-            promises.push(Media.findOne({
-                where: { fileName: req.files.media[0].filename },
-            }));
-            promises.push(resizeImage(req.files.media[0], 128, 128, 90, 'thumbnail'));
-        }
-        Promise.all(promises).then((responses) => {
-            submitDataset(data, responses[0], responses[1]).then(() => {
-                createDataset(req.user, data, responses).then(() => {
-                    res.sendStatus(200);
-                }).catch((err) => {
-                    logError('Could not create dataset entry in database', err);
-                    removeFiles(req.files);
-                    res.sendStatus(500);
-                });
-            }).catch((err) => {
-                logError('Could not submit dataset to blockchain', err);
-                removeFiles(req.files);
-                res.sendStatus(500);
-            });
-        }).catch((err) => {
-            logError('Could not prepare submission', err);
+        try {
+            await submitDatasetAndMetadata(req);
+            res.sendStatus(200);
+        } catch (err) {
+            logError('Could not submit dataset', err);
             removeFiles(req.files);
             res.sendStatus(500);
-        });
-    } else res.sendStatus(400);
+        }
+    } else {
+        res.sendStatus(400);
+    }
 });
 
 /**
@@ -178,7 +135,9 @@ router.delete('/:datasetId', isVerified, [
         if (organization) {
             await removeDataset(req.params.datasetId, req.user.id, organization);
             res.sendStatus(200);
-        } else res.sendStatus(404);
+        } else {
+            res.sendStatus(404);
+        }
     } catch (err) {
         logError('Could not delete dataset file', err);
         res.sendStatus(500);

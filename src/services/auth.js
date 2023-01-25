@@ -1,13 +1,12 @@
 import crypto from 'crypto';
 import Sequelize from 'sequelize';
-import Token from '../database/models/Token.js';
 import User from '../database/models/User.js';
-import { sendMail, mailSubject } from './mailer.js';
-import { logError, logInfo } from './logger.js';
-import Organizations from '../database/models/Organizations.js';
-import postgres from '../config/postgres.js';
-import { encryptSha256 } from './encryption.js';
+import { logInfo } from '../utils/logger.js';
 import Emails from '../database/models/Emails.js';
+import Token from '../database/models/Token.js';
+import { mailSubject, sendMail } from '../utils/mailer.js';
+import postgres from '../config/postgres.js';
+import { encryptSha256 } from '../utils/encryption.js';
 
 /**
  * Find user and default organization
@@ -45,7 +44,7 @@ export const findUser = async (orcid) => {
  *
  * @param {string} accessToken Oauth access token
  * @param {string} refreshToken Oauth refresh token
- * @param {*} params Oauth params
+ * @param {Object} params Oauth params
  * @returns {Object} User object
  */
 export const createUserIfNotExists = async (accessToken, refreshToken, params) => {
@@ -67,12 +66,91 @@ export const createUserIfNotExists = async (accessToken, refreshToken, params) =
 };
 
 /**
+ * Verify email address
+ *
+ * @param {string} tokenId Token
+ * @returns {Array} Updated results
+ */
+export const verifyEmail = async (tokenId) => {
+    const token = await Token.findOne({
+        where: {
+            token: tokenId,
+            type: 'VERIFY_EMAIL',
+        },
+    });
+    if (token) {
+        if (Date.parse(new Date()) < Date.parse(token.expiresAt)) {
+            const email = await Emails.findOne({
+                where: {
+                    userId: token.userId,
+                    status: 'VERIFIED',
+                },
+            });
+            if (email) await email.destroy();
+            const updated = await Emails.update({
+                status: 'VERIFIED',
+            }, {
+                where: {
+                    userId: token.userId,
+                    status: 'NOT_VERIFIED',
+                },
+            });
+            if (updated.length > 0) {
+                await User.update({
+                    status: 'VERIFIED',
+                }, {
+                    where: {
+                        id: token.userId,
+                        status: 'NOT_VERIFIED',
+                    },
+                });
+                await token.destroy();
+            }
+            return updated;
+        }
+    }
+    return undefined;
+};
+
+/**
+ * Resets email address for the user
+ *
+ * @param {string} userId User ID
+ * @returns {boolean} True if updated profile
+ */
+export const resetProfile = async (userId) => {
+    const updated = await User.update({
+        email: null,
+    }, {
+        where: {
+            id: userId,
+            status: 'NOT_VERIFIED',
+        },
+    });
+    if (updated.length > 0) {
+        await Emails.destroy({
+            where: {
+                userId,
+            },
+        });
+        await Token.destroy({
+            where: {
+                userId,
+                type: 'VERIFY_EMAIL',
+            },
+        });
+        return true;
+    }
+    return false;
+};
+
+/**
  * Create token for verifying email and send verification email
  *
  * @param {string} userId User ID
  * @param {string} email Email address
  */
-export const createEmailToken = async (userId, email) => {
+const createEmailToken = async (userId, email) => {
     const expiresAt = new Date();
     expiresAt.setHours(
         expiresAt.getHours() + parseInt(process.env.EMAIL_VERIFICATION_EXPIRES_HOURS, 10),
@@ -84,7 +162,36 @@ export const createEmailToken = async (userId, email) => {
         expiresAt,
     });
     await sendMail(email, mailSubject.verifyEmail, undefined, 'verify', token.token);
-    logInfo('Confirm email notification sent');
+    logInfo('Email notification sent');
+};
+
+/**
+ * Create email verification token
+ *
+ * @param {string} userId User ID
+ * @param {string} email Email address
+ * @returns True if created
+ */
+export const createToken = async (userId, email) => {
+    const emails = await Emails.findAll({
+        where: {
+            userId,
+            status: 'NOT_VERIFIED',
+        },
+    });
+    if (emails.length === 1) {
+        const tokens = await Token.findAll({
+            where: {
+                userId,
+                type: 'VERIFY_EMAIL',
+            },
+        });
+        if (tokens.length < 10) {
+            await createEmailToken(userId, email);
+            return true;
+        }
+    }
+    return false;
 };
 
 /**
@@ -93,7 +200,7 @@ export const createEmailToken = async (userId, email) => {
  * @param {string} userId User ID
  * @param {string} email Email address
  */
-export const updateUserEmail = async (userId, email) => {
+const updateUserEmail = async (userId, email) => {
     await Emails.destroy({
         where: {
             userId,
@@ -116,47 +223,20 @@ export const updateUserEmail = async (userId, email) => {
 };
 
 /**
- * Create an affiliation for the user
+ * Add email address to user profile
  *
  * @param {string} userId User ID
- * @param {string} organizationId Organization ID
+ * @param {string} email Email address
+ * @returns {Object} User object
  */
-export const createAffiliation = async (userId, organizationId) => {
-    const response = await Organizations.findOrCreate({
-        where: {
-            userId,
-            organizationId,
-        },
-        defaults: {
-            userId,
-            organizationId,
-            role: 'NONE',
-        },
+export const addEmail = async (userId, email) => {
+    const user = await User.findByPk(userId, {
+        include: [{ model: Emails }],
     });
-    if (response[1]) {
-        const admins = await postgres.query(
-            'SELECT user_emails.email as email '
-            + 'FROM user_organizations '
-            + 'INNER JOIN user_emails '
-            + 'ON user_organizations.ecko_user_id = user_emails.ecko_user_id '
-            + 'WHERE user_organizations.organization_id = ? '
-            + 'AND user_organizations.role_name = \'ADMIN\' ',
-            {
-                type: Sequelize.QueryTypes.SELECT,
-                replacements: [organizationId],
-                model: Organizations,
-                mapToModel: true,
-                raw: true,
-            },
-        );
-        if (admins && admins.length > 0) {
-            try {
-                await sendMail(admins.map((admin) => admin.email), mailSubject.newAffiliation, undefined, 'affiliation');
-            } catch (err) {
-                logError('Could not send email notification to admins', err);
-            }
-        } else logInfo('Could not find any organization administrators to notify');
+    if (user) {
+        await updateUserEmail(userId, email);
     }
+    return user;
 };
 
 /**
@@ -174,6 +254,6 @@ export const setAuthCookie = (res, user, email) => {
         name: user.name,
         email,
         organization: user.organization,
-        role: user.role ? user.role : undefined,
+        role: user.role,
     }), { sameSite: 'lax', httpOnly: false });
 };

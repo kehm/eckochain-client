@@ -32,47 +32,115 @@ import EmailStatus from '../models/EmailStatus.js';
 const initAssociations = () => new Promise((resolve, reject) => {
     try {
         // dataset.ecko_user_id
-        Dataset.belongsTo(User, { foreignKey: { name: 'ecko_user_id' } });
-        User.hasOne(Dataset, { foreignKey: { name: 'ecko_user_id' } });
+        Dataset.belongsTo(User, {
+            foreignKey: { name: 'ecko_user_id' },
+        });
+        User.hasOne(Dataset, {
+            foreignKey: { name: 'ecko_user_id' },
+        });
         // ecko_user.user_status_name
-        User.belongsTo(UserStatus, { foreignKey: { name: 'user_status_name' } });
-        UserStatus.hasOne(User, { foreignKey: { name: 'user_status_name' } });
+        User.belongsTo(UserStatus, {
+            foreignKey: { name: 'user_status_name' },
+        });
+        UserStatus.hasOne(User, {
+            foreignKey: { name: 'user_status_name' },
+        });
         // user_emails.email_status_name
-        Emails.belongsTo(EmailStatus, { foreignKey: { name: 'email_status_name' } });
-        EmailStatus.hasOne(Emails, { foreignKey: { name: 'email_status_name' } });
+        Emails.belongsTo(EmailStatus, {
+            foreignKey: { name: 'email_status_name' },
+        });
+        EmailStatus.hasOne(Emails, {
+            foreignKey: { name: 'email_status_name' },
+        });
         // user_emails.ecko_user_id
-        Emails.belongsTo(User, { foreignKey: { name: 'ecko_user_id' } });
-        User.hasOne(Emails, { foreignKey: { name: 'ecko_user_id' } });
+        Emails.belongsTo(User, {
+            foreignKey: { name: 'ecko_user_id' },
+        });
+        User.hasOne(Emails, {
+            foreignKey: { name: 'ecko_user_id' },
+        });
         // organization
-        Organization.belongsTo(OrganizationStatus, { foreignKey: { name: 'organization_status_name' } });
-        OrganizationStatus.hasOne(Organization, { foreignKey: { name: 'organization_status_name' } });
+        Organization.belongsTo(OrganizationStatus, {
+            foreignKey: { name: 'organization_status_name' },
+        });
+        OrganizationStatus.hasOne(Organization, {
+            foreignKey: { name: 'organization_status_name' },
+        });
         // user_organizations
-        User.belongsToMany(Organization, { through: 'user_organizations', as: 'users_organizations', foreignKey: 'ecko_user_id', otherKey: 'organization_id' });
-        Organization.belongsToMany(User, { through: 'user_organizations', as: 'organizations_users', foreignKey: 'organization_id', otherKey: 'ecko_user_id' });
+        User.belongsToMany(Organization, {
+            through: 'user_organizations',
+            as: 'users_organizations',
+            foreignKey: 'ecko_user_id',
+            otherKey: 'organization_id',
+        });
+        Organization.belongsToMany(User, {
+            through: 'user_organizations',
+            as: 'organizations_users',
+            foreignKey: 'organization_id',
+            otherKey: 'ecko_user_id',
+        });
         // media.ecko_user_id
-        Media.belongsTo(User, { foreignKey: { name: 'ecko_user_id' } });
-        User.hasOne(Media, { foreignKey: { name: 'ecko_user_id' } });
+        Media.belongsTo(User, {
+            foreignKey: { name: 'ecko_user_id' },
+        });
+        User.hasOne(Media, {
+            foreignKey: { name: 'ecko_user_id' },
+        });
         // media.media_type_name
-        Media.belongsTo(MediaType, { foreignKey: { name: 'media_type_name' } });
-        MediaType.hasOne(Media, { foreignKey: { name: 'media_type_name' } });
+        Media.belongsTo(MediaType, {
+            foreignKey: { name: 'media_type_name' },
+        });
+        MediaType.hasOne(Media, {
+            foreignKey: { name: 'media_type_name' },
+        });
         // dataset_media.media_id
-        DatasetMedia.belongsTo(Media, { foreignKey: { name: 'media_id' } });
-        Media.hasOne(DatasetMedia, { foreignKey: { name: 'media_id' } });
+        DatasetMedia.belongsTo(Media, {
+            foreignKey: { name: 'media_id' },
+        });
+        Media.hasOne(DatasetMedia, {
+            foreignKey: { name: 'media_id' },
+        });
         // dataset.dataset_status_name
-        Dataset.belongsTo(DatasetStatus, { foreignKey: { name: 'dataset_status_name' } });
-        DatasetStatus.hasOne(Dataset, { foreignKey: { name: 'dataset_status_name' } });
+        Dataset.belongsTo(DatasetStatus, {
+            foreignKey: { name: 'dataset_status_name' },
+        });
+        DatasetStatus.hasOne(Dataset, {
+            foreignKey: { name: 'dataset_status_name' },
+        });
         // role_permissions
-        Role.belongsToMany(Permission, { through: 'role_permissions', as: 'roles_permissions', foreignKey: 'role_name', otherKey: 'permission_name' });
-        Permission.belongsToMany(Role, { through: 'role_permissions', as: 'permissions_roles', foreignKey: 'permission_name', otherKey: 'role_name' });
+        Role.belongsToMany(Permission, {
+            through: 'role_permissions',
+            as: 'roles_permissions',
+            foreignKey: 'role_name',
+            otherKey: 'permission_name',
+        });
+        Permission.belongsToMany(Role, {
+            through: 'role_permissions',
+            as: 'permissions_roles',
+            foreignKey: 'permission_name',
+            otherKey: 'role_name',
+        });
         // contract.contract_status_name
-        Contract.belongsTo(ContractStatus, { foreignKey: { name: 'contract_status_name' } });
-        ContractStatus.hasOne(Contract, { foreignKey: { name: 'contract_status_name' } });
+        Contract.belongsTo(ContractStatus, {
+            foreignKey: { name: 'contract_status_name' },
+        });
+        ContractStatus.hasOne(Contract, {
+            foreignKey: { name: 'contract_status_name' },
+        });
         // contract.dataset_id
-        Contract.belongsTo(Dataset, { foreignKey: { name: 'dataset_id' } });
-        Dataset.hasOne(Contract, { foreignKey: { name: 'dataset_id' } });
+        Contract.belongsTo(Dataset, {
+            foreignKey: { name: 'dataset_id' },
+        });
+        Dataset.hasOne(Contract, {
+            foreignKey: { name: 'dataset_id' },
+        });
         // contract.ecko_user_id
-        Contract.belongsTo(User, { foreignKey: { name: 'ecko_user_id' } });
-        User.hasOne(Contract, { foreignKey: { name: 'ecko_user_id' } });
+        Contract.belongsTo(User, {
+            foreignKey: { name: 'ecko_user_id' },
+        });
+        User.hasOne(Contract, {
+            foreignKey: { name: 'ecko_user_id' },
+        });
         resolve();
     } catch (err) {
         reject(err);

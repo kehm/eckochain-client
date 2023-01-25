@@ -2,7 +2,7 @@ import fabricNetwork from 'fabric-network';
 import FabricCAServices from 'fabric-ca-client';
 import yaml from 'js-yaml';
 import fs from 'fs';
-import { logInfo } from '../utils/logger.js';
+import { logInfo } from './logger.js';
 
 const { Wallets } = fabricNetwork;
 

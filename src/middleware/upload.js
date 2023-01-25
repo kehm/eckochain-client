@@ -16,8 +16,8 @@ const imageMimeTypes = new RegExp(
     + 'image/png',
 );
 // Accepted file types
-const datasetTypes = new RegExp('xls|xlsx|csv');
-const imageTypes = new RegExp('jpg|jpeg|png');
+const datasetTypes = /xls|xlsx|csv/;
+const imageTypes = /jpg|jpeg|png/;
 
 // Set storage engine
 const storage = multer.diskStorage({
@@ -25,12 +25,34 @@ const storage = multer.diskStorage({
         let filePath;
         if (datasetMimeTypes.test(file.mimetype)) {
             filePath = process.env.DATASET_PATH;
-        } else filePath = process.env.MEDIA_PATH;
+        } else {
+            filePath = process.env.MEDIA_PATH;
+        }
         if (!fs.existsSync(filePath)) fs.mkdirSync(filePath, { recursive: true });
         cb(null, filePath);
     },
     filename: (req, file, cb) => { cb(null, file.customName); },
 });
+
+/**
+ * Create media in database
+ *
+ * @param {Object} file File object
+ * @param {string} userId User ID
+ * @returns {string} File name
+ */
+const createMedia = async (file, userId) => {
+    const media = await Media.create({
+        type: file.mimetype,
+        userId,
+    });
+    const fileName = `${media.id}.${media.type.split('/')[1]}`;
+    await media.update({
+        fileName,
+        filePath: `${process.env.MEDIA_PATH}${fileName}`,
+    });
+    return fileName;
+};
 
 /**
  * Check if file type and mime type are valid
@@ -41,7 +63,6 @@ const storage = multer.diskStorage({
  */
 const validateFileType = (req, file, cb) => {
     let valid = false;
-    const promises = [];
     if (datasetTypes.test(path.extname(file.originalname).toLowerCase())) {
         if (datasetMimeTypes.test(file.mimetype)) {
             const nanoid = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 8);
@@ -50,29 +71,19 @@ const validateFileType = (req, file, cb) => {
         }
     } else if (imageTypes.test(path.extname(file.originalname).toLowerCase())) {
         if (imageMimeTypes.test(file.mimetype)) {
-            promises.push(new Promise((resolve, reject) => {
-                Media.create({
-                    type: file.mimetype,
-                    userId: req.user.id,
-                }).then((media) => {
-                    const fileName = `${media.id}.${media.type.split('/')[1]}`;
-                    media.update({
-                        fileName,
-                        filePath: `${process.env.MEDIA_PATH}${fileName}`,
-                    }).then(() => {
-                        file.customName = fileName;
-                        valid = true;
-                        resolve(fileName);
-                    }).catch((err) => reject(err));
-                }).catch((err) => reject(err));
-            }));
+            createMedia(file, req.user.id).then((fileName) => {
+                file.customName = fileName;
+                valid = true;
+            }).catch(() => {
+                valid = false;
+            });
         }
     }
-    Promise.all(promises).then(() => {
-        if (valid) {
-            cb(null, true);
-        } else cb('Error: Invalid file type', false);
-    }).catch((err) => cb(err, false));
+    if (valid) {
+        cb(null, true);
+    } else {
+        cb('Error: Invalid file type', false);
+    }
 };
 
 // Set upload config
@@ -90,7 +101,9 @@ const upload = (req, res, next) => {
         if (err) {
             logError('Could not process file(s)', err);
             res.sendStatus(500);
-        } else next();
+        } else {
+            next();
+        }
     });
 };
 

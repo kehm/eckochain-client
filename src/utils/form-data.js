@@ -1,25 +1,4 @@
-import Ajv from 'ajv';
-import fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
 import { customAlphabet } from 'nanoid';
-import { logError } from './logger.js';
-
-/**
- * Validate with JSON schema
- *
- * @param {Object} data JSON data
- * @returns {boolean} True if validation successful
- */
-export const validateJSON = (data) => {
-    const schema = JSON.parse(fs.readFileSync('schema.json', 'utf-8'));
-    const ajv = new Ajv.default();
-    const validate = ajv.compile(schema);
-    if (validate(data)) {
-        return true;
-    }
-    logError(validate.errors);
-    return false;
-};
 
 /**
  * Remove leading/trailing whitespace and newlines from input data and parse array strings to arrays
@@ -41,7 +20,7 @@ export const parseFormData = (data) => {
  * @param {Object} formData Form data
  * @returns {string} Dataset ID
  */
-const createDatasetId = (formData) => {
+export const createDatasetId = (formData) => {
     const nanoid = customAlphabet('0123456789', 6);
     let surveyType;
     switch (formData.survey) {
@@ -55,18 +34,16 @@ const createDatasetId = (formData) => {
             surveyType = 'CO';
             break;
     }
-    return `${surveyType}-${formData.earliestYearCollected}-${formData.latestYearCollected !== undefined && formData.latestYearCollected !== formData.earliestYearCollected ? `${formData.latestYearCollected}-` : ''}${formData.countries[0]}-${nanoid()}`;
-};
-
-/**
- * Create unique IDs and names
- *
- * @param {Object} data Form data
- * @returns {Object} Form data with added IDs and names
- */
-export const createIds = (data) => {
-    const formData = { ...data };
-    formData.datasetId = createDatasetId(formData);
-    formData.policyId = uuidv4();
-    return formData;
+    let latestYearCollected = '';
+    if (
+        formData.latestYearCollected
+        && formData.latestYearCollected !== formData.earliestYearCollected
+    ) {
+        latestYearCollected = `${formData.latestYearCollected}-`;
+    }
+    let country = 'NULL';
+    if (formData.countries && formData.countries.length > 0) {
+        [country] = formData.countries;
+    }
+    return `${surveyType}-${formData.earliestYearCollected}-${latestYearCollected}${country}-${nanoid()}`;
 };
