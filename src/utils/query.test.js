@@ -48,7 +48,7 @@ describe('call function query', () => {
                 'contract1',
                 'func1',
                 'getAll',
-            )).rejects.toThrowError("ENOENT: no such file or directory, open 'undefined/certs/undefined-tlscert.crt'");
+            )).rejects.toThrowError("ENOENT: no such file or directory, open 'undefined/undefined-tlscert.crt'");
         });
     });
 });

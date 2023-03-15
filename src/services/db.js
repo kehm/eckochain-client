@@ -54,5 +54,5 @@ export const sendFeedbackConfirmation = async (type, email, message) => {
         + '<dt>Message: </dt>'
         + `<dd>${message}</dd>`
         + '</dl>';
-    await sendMail(process.env.EMAIL_ECKO_CONTACT, mailSubject.feedback, htmlBody);
+    await sendMail(process.env.MAIL_CONTACT, mailSubject.feedback, htmlBody);
 };

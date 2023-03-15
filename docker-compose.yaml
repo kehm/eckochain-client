@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Docker-Compose file for bringing up the client
+
+version: "3"
+
+networks:
+  ecko:
+    external:
+      name: ecko-network
+
+services:
+  client:
+    container_name: client.ecko
+    image: ecko/client:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=development
+        - PORT=3000
+        - MAX_FILE_SIZE=25000000
+        - DATASET_PATH=/usr/data/datasets
+        - MEDIA_PATH=/usr/data/media
+        - PUBLIC_MEDIA_PATH=/usr/data/public/media
+        - CERTS_PATH=/usr/data/config/certs
+        - CONNECTION_PROFILE_PATH=/usr/data/config/connection-profiles
+        - WALLET_PATH=/usr/data/wallet
+        - WEB_URL=https://ecko.uib.no
+        - WEB_NAME=ECKO Resurvey Data Consortium
+        - CRON_INTERVAL_MIN=5
+        - CRON_TIME_ZONE=Europe/Oslo
+        - MAIL_SERVICE=
+        - MAIL_HOST=
+        - MAIL_PORT=
+        - MAIL_USER=
+        - MAIL_PASS=
+        - MAIL_FROM=
+        - MAIL_TEMPLATE_PATH=./templates
+        - MAIL_CONTACT=
+        - VERIFICATION_EXPIRES_HOURS=48
+        - SSO_CLIENT_ID=
+        - SSO_CLIENT_SECRET=
+        - SSO_SCOPE=
+        - SSO_REDIRECT_URL=
+        - SSO_AUTH_URL=
+        - SSO_TOKEN_URL=
+        - SSO_API_TOKEN_EXP=86400
+        - OAUTH_TOKEN_SECRET=
+        - POSTGRES_HOST=
+        - POSTGRES_PORT=5432
+        - POSTGRES_DB=
+        - POSTGRES_USER=
+        - POSTGRES_PASS=
+        - POSTGRES_FORCE=false
+        - POSTGRES_INIT=false
+        - SESSION_CLEANUP_INTERVAL=900000
+        - SESSION_EXPIRES=86400000
+        - SESSION_NAME=sid
+        - SESSION_SECRET=
+        - SESSION_MAX_AGE=7200000
+        - FABRIC_CHANNEL_NAME=eckochannel
+        - FABRIC_CHAINCODE_NAME=DatasetContract
+        - FABRIC_DEFAULT_ORG=1
+    restart: unless-stopped
+    volumes:
+      - ./data:/usr/data
+    ports:
+      - 3000:3000
+    networks:
+      - ecko
+    logging:
+        driver: local

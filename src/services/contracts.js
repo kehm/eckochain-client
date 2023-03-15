@@ -282,7 +282,7 @@ const resolveContract = async (contractId, accept, response, userId, organizatio
         'resolveContract',
         transient,
         contract.datasetId,
-        true,
+        'true',
     );
     const updated = await Contract.update({
         status: accept ? 'ACCEPTED' : 'REJECTED',

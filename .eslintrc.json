@@ -15,6 +15,7 @@
         "indent": "off",
         "import/extensions": "off",
         "new-cap": "warn",
+        "no-empty": "warn",
         "no-param-reassign": "warn",
         "no-shadow": "warn",
         "no-unused-vars": "warn"

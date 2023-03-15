@@ -5,7 +5,7 @@ import {
     getDatasets,
     getUserDatasets,
     removeDataset,
-    setMetadata,
+    updateMetadata,
     submitDatasetAndMetadata,
 } from './datasets.js';
 
@@ -175,7 +175,7 @@ describe('call function getDatasetById', () => {
 
 describe('call function getDataset', () => {
     describe('with an existing contract', () => {
-        test('should throw error at decrypt', async () => {
+        test('should not throw error', async () => {
             const organization = {
                 fabricName: 'org1',
             };
@@ -192,11 +192,11 @@ describe('call function getDataset', () => {
                 organization,
                 policy,
                 owner,
-            )).rejects.toThrowError('The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received undefined');
+            )).resolves.not.toThrowError();
         });
     });
     describe('with a not existing contract', () => {
-        test('should throw error at decrypt', async () => {
+        test('should not throw error', async () => {
             const organization = {
                 fabricName: 'org1',
             };
@@ -213,7 +213,7 @@ describe('call function getDataset', () => {
                 organization,
                 policy,
                 owner,
-            )).rejects.toThrowError('The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received undefined');
+            )).resolves.not.toThrowError();
         });
     });
 });
@@ -272,7 +272,7 @@ describe('call function submitDatasetAndMetadata', () => {
     });
 });
 
-describe('call function setMetadata', () => {
+describe('call function updateMetadata', () => {
     describe('with valid parameters', () => {
         test('should not throw error', async () => {
             const body = {
@@ -288,7 +288,7 @@ describe('call function setMetadata', () => {
             const organization = {
                 fabricName: 'org1',
             };
-            await expect(setMetadata(
+            await expect(updateMetadata(
                 body,
                 dataset,
                 'b3feccac-f4f6-48e1-b1c3-187fabf25074',

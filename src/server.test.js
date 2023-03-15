@@ -1,6 +1,5 @@
 import start from './server';
 import { logError } from './utils/logger';
-import { sendMail } from './utils/mailer';
 
 const originalEnv = { ...process.env };
 
@@ -25,7 +24,6 @@ jest.mock('./utils/mailer', () => ({
         }
     }),
     mailSubject: jest.requireActual(),
-    mailBody: jest.requireActual(),
 }));
 
 afterEach(() => {
@@ -36,30 +34,18 @@ afterEach(() => {
 describe('call function start', () => {
     describe('with valid parameters', () => {
         test('should not log error', async () => {
-            process.env.EMAIL_ECKO_CONTACT = 'test@test.com';
+            process.env.MAIL_CONTACT = 'test@test.com';
             const app = {
                 listen: jest.fn(),
             };
             await start(app);
             expect(logError).not.toHaveBeenCalled();
-            expect(sendMail).toHaveBeenCalled();
-        });
-    });
-    describe('with no contact email', () => {
-        test('should log error', async () => {
-            const app = {
-                listen: jest.fn(),
-            };
-            await start(app);
-            expect(logError).toHaveBeenCalled();
-            expect(sendMail).toHaveBeenCalled();
         });
     });
     describe('with invalid parameters', () => {
         test('should log error', async () => {
             await start({});
             expect(logError).toHaveBeenCalled();
-            expect(sendMail).not.toHaveBeenCalled();
         });
     });
 });

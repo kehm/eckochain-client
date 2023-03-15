@@ -153,7 +153,7 @@ export const resetProfile = async (userId) => {
 const createEmailToken = async (userId, email) => {
     const expiresAt = new Date();
     expiresAt.setHours(
-        expiresAt.getHours() + parseInt(process.env.EMAIL_VERIFICATION_EXPIRES_HOURS, 10),
+        expiresAt.getHours() + parseInt(process.env.VERIFICATION_EXPIRES_HOURS, 10),
     );
     const token = await Token.create({
         token: crypto.randomBytes(16).toString('hex'),

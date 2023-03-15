@@ -25,12 +25,12 @@ if (process.env.NODE_ENV !== 'development') {
      * ORCID authentication strategy
      */
     passport.use(new OAuth2Strategy({
-        authorizationURL: process.env.ORCID_AUTH_URL,
-        tokenURL: process.env.ORCID_TOKEN_URL,
-        scope: process.env.ORCID_SCOPE,
-        clientID: process.env.ORCID_CLIENT_ID,
-        clientSecret: process.env.ORCID_CLIENT_SECRET,
-        callbackURL: process.env.ORCID_REDIRECT_URL,
+        authorizationURL: process.env.SSO_AUTH_URL,
+        tokenURL: process.env.SSO_TOKEN_URL,
+        scope: process.env.SSO_SCOPE,
+        clientID: process.env.SSO_CLIENT_ID,
+        clientSecret: process.env.SSO_CLIENT_SECRET,
+        callbackURL: process.env.SSO_REDIRECT_URL,
     }, async (accessToken, refreshToken, params, profile, done) => {
         try {
             const user = await createUserIfNotExists(accessToken, refreshToken, params);
@@ -83,10 +83,10 @@ router.get('/verify/:token', [
     try {
         const updated = await verifyEmail(req.params.token);
         if (!updated) {
-            res.redirect(`${process.env.ECKO_WEB_URL}/token-expired`);
+            res.redirect(`${process.env.WEB_URL}/token-expired`);
         } else if (updated.length > 0) {
             res.clearCookie(process.env.SESSION_NAME);
-            res.redirect(`${process.env.ECKO_WEB_URL}/verified`);
+            res.redirect(`${process.env.WEB_URL}/verified`);
         } else {
             res.sendStatus(404);
         }

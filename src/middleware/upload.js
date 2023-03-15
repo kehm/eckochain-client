@@ -9,6 +9,7 @@ import { logError } from '../utils/logger.js';
 const datasetMimeTypes = new RegExp(
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|'
     + 'application/vnd.ms-excel|'
+    + 'application/vnd.oasis.opendocument.spreadsheet|'
     + 'text/csv',
 );
 const imageMimeTypes = new RegExp(
@@ -16,7 +17,7 @@ const imageMimeTypes = new RegExp(
     + 'image/png',
 );
 // Accepted file types
-const datasetTypes = /xls|xlsx|csv/;
+const datasetTypes = /xls|xlsx|ods|csv/;
 const imageTypes = /jpg|jpeg|png/;
 
 // Set storage engine
@@ -49,7 +50,7 @@ const createMedia = async (file, userId) => {
     const fileName = `${media.id}.${media.type.split('/')[1]}`;
     await media.update({
         fileName,
-        filePath: `${process.env.MEDIA_PATH}${fileName}`,
+        filePath: `${process.env.MEDIA_PATH}/${fileName}`,
     });
     return fileName;
 };

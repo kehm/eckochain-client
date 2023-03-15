@@ -60,7 +60,6 @@ describe('call function createSha256Hash', () => {
 describe('call function createTransient', () => {
     describe('with valid path', () => {
         test('should not throw error', async () => {
-            const key = 'b7dd3347a6b8e866d33b26f4d60cf32edc95f0b880f4d8a8fcbabc4043c26719';
             const req = {
                 user: {
                     id: 'b3feccac-f4f6-48e1-b1c3-187fabf25074',
@@ -75,15 +74,13 @@ describe('call function createTransient', () => {
                     ],
                 },
             };
-            const transient = await createTransient(req, key);
+            const transient = await createTransient(req);
             expect(transient.invokedBy).toEqual(Buffer.from(req.user.id));
-            expect(transient.key).toEqual(Buffer.from(key));
             expect(Buffer.isBuffer(transient.file)).toBe(true);
         });
     });
     describe('with invalid path', () => {
         test('should reject with error', async () => {
-            const key = 'b7dd3347a6b8e866d33b26f4d60cf32edc95f0b880f4d8a8fcbabc4043c26719';
             const req = {
                 user: {
                     id: 'b3feccac-f4f6-48e1-b1c3-187fabf25074',
@@ -98,7 +95,7 @@ describe('call function createTransient', () => {
                     ],
                 },
             };
-            await expect(createTransient(req, key)).rejects.toEqual(error);
+            await expect(createTransient(req)).rejects.toEqual(error);
         });
     });
 });

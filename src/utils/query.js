@@ -10,11 +10,11 @@ const { Gateway, Wallets } = fabricNetwork;
  * @param {Object} organization Organization object
  * @param {string} chaincode Chaincode name
  * @param {string} func Function name
- * @param {string} queryString Query string
+ * @param {string | undefined} queryString Query string
  */
 const query = async (organization, chaincode, func, queryString) => {
     const connectionProfile = yaml.load(fs.readFileSync(
-        `${process.env.CONFIG_PATH}/connection-profiles/${organization.connectionProfile}`,
+        `${process.env.CONNECTION_PROFILE_PATH}/${organization.connectionProfile}`,
         'utf8',
     ));
     const wallet = await Wallets.newFileSystemWallet(process.env.WALLET_PATH);
@@ -30,11 +30,11 @@ const query = async (organization, chaincode, func, queryString) => {
             },
             tlsInfo: {
                 certificate: fs.readFileSync(
-                    `${process.env.CONFIG_PATH}/certs/${organization.clientIdentity}-tlscert.crt`,
+                    `${process.env.CERTS_PATH}/${organization.clientIdentity}-tlscert.crt`,
                     'utf8',
                 ),
                 key: fs.readFileSync(
-                    `${process.env.CONFIG_PATH}/certs/${organization.clientIdentity}-priv.key`,
+                    `${process.env.CERTS_PATH}/${organization.clientIdentity}-priv.key`,
                     'utf8',
                 ),
             },

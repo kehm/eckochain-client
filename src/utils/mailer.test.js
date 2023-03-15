@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { mailBody, mailSubject, sendMail } from './mailer';
+import { mailSubject, sendMail } from './mailer';
 
 jest.mock('nodemailer', () => ({
     createTransport: jest.fn(() => ({
@@ -14,8 +14,8 @@ describe('call function sendMail', () => {
         test('should not throw error', async () => {
             await expect(sendMail(
                 'test@test.com',
-                mailSubject.appRestart,
-                mailBody.appRestart,
+                mailSubject.feedback,
+                '<p>test</p>',
             )).resolves.not.toThrowError();
         });
     });
@@ -23,7 +23,7 @@ describe('call function sendMail', () => {
         test('should not throw error', async () => {
             await expect(sendMail(
                 'test@test.com',
-                mailSubject.appRestart,
+                mailSubject.feedback,
                 undefined,
             )).resolves.not.toThrowError();
         });
@@ -32,7 +32,7 @@ describe('call function sendMail', () => {
         test('should not throw error', async () => {
             await expect(sendMail(
                 'test@test.com',
-                mailSubject.appRestart,
+                mailSubject.feedback,
                 undefined,
                 '1',
                 '2',

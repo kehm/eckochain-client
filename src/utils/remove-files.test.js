@@ -10,16 +10,16 @@ const error = {
 };
 jest.spyOn(fs, 'existsSync').mockImplementation((path) => {
     if (
-        path === `${process.env.DATASET_PATH}dataset123`
-        || path === `${process.env.DATASET_PATH}dataset1234`
+        path === `${process.env.DATASET_PATH}/dataset123`
+        || path === `${process.env.DATASET_PATH}/dataset1234`
     ) {
         return true;
     }
     if (
-        path === `${process.env.MEDIA_PATH}media123.png`
-        || path === `${process.env.MEDIA_PATH}media1234.png`
-        || path === `${process.env.MEDIA_PATH}media12345.png`
-        || path === `${process.env.MEDIA_PATH}media12345-thumbnail.png`
+        path === `${process.env.MEDIA_PATH}/media123.png`
+        || path === `${process.env.MEDIA_PATH}/media1234.png`
+        || path === `${process.env.MEDIA_PATH}/media12345.png`
+        || path === `${process.env.MEDIA_PATH}/media12345-thumbnail.png`
     ) {
         return true;
     }
@@ -28,10 +28,10 @@ jest.spyOn(fs, 'existsSync').mockImplementation((path) => {
 
 jest.spyOn(fs, 'unlink').mockImplementation((path, callback) => {
     if (
-        path === `${process.env.DATASET_PATH}dataset1234`
-        || path === `${process.env.MEDIA_PATH}media1234.png`
-        || path === `${process.env.MEDIA_PATH}media12345.png`
-        || path === `${process.env.MEDIA_PATH}media12345-thumbnail.png`
+        path === `${process.env.DATASET_PATH}/dataset1234`
+        || path === `${process.env.MEDIA_PATH}/media1234.png`
+        || path === `${process.env.MEDIA_PATH}/media12345.png`
+        || path === `${process.env.MEDIA_PATH}/media12345-thumbnail.png`
     ) {
         callback(error);
     } else {
@@ -44,8 +44,8 @@ jest.mock('./logger', () => ({
 }));
 
 beforeEach(() => {
-    process.env.DATASET_PATH = 'datasets/';
-    process.env.MEDIA_PATH = 'media/';
+    process.env.DATASET_PATH = 'datasets';
+    process.env.MEDIA_PATH = 'media';
 });
 
 afterEach(() => {

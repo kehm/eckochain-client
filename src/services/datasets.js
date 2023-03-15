@@ -2,12 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { parseFormData, createDatasetId } from '../utils/form-data.js';
 import Contract from '../database/models/Contract.js';
 import Organization from '../database/models/Organization.js';
-import {
-    createSha256Hash,
-    createTransient,
-    decryptSha256,
-    generateKey,
-} from '../utils/encryption.js';
+import { createSha256Hash, createTransient } from '../utils/encryption.js';
 import Dataset from '../database/models/Dataset.js';
 import DatasetMedia from '../database/models/DatasetMedia.js';
 import invoke from '../utils/invoke.js';
@@ -15,6 +10,7 @@ import User from '../database/models/User.js';
 import Media from '../database/models/Media.js';
 import resizeImage from '../utils/resize-image.js';
 import { mailSubject, sendMail } from '../utils/mailer.js';
+import { logError, logInfo } from '../utils/logger.js';
 
 /**
  * Get all datasets
@@ -73,6 +69,33 @@ export const getDatasetById = async (datasetId) => {
 };
 
 /**
+ * Create contract entry in database
+ *
+ * @param {string} id Contract ID
+ * @param {string} datasetId Dataset ID
+ * @param {string} userId User ID
+ * @param {string} policy Policy
+ * @param {Object} owner Dataset owner
+ */
+const createContract = async (id, datasetId, userId, policy, owner) => {
+    await Contract.create({
+        id,
+        datasetId,
+        userId,
+        proposal: undefined,
+        status: 'ACCEPTED',
+        policy,
+    });
+    try {
+        if (owner && owner.email) {
+            sendMail(owner.email, mailSubject.newDownload, undefined, 'download');
+        }
+    } catch (err) {
+        logError('Could not send email notification', err);
+    }
+};
+
+/**
  * Get dataset file/key by license or existing contract
  *
  * @param {string} datasetId Dataset ID
@@ -80,7 +103,7 @@ export const getDatasetById = async (datasetId) => {
  * @param {Object} organization Organization object
  * @param {Object} policy Dataset policy object
  * @param {string} owner Dataset owner user object
- * @returns {Object} The decrypted file
+ * @returns {Object} The dataset file
  */
 export const getDataset = async (datasetId, userId, organization, policy, owner) => {
     const transient = { invokedBy: Buffer.from(userId) };
@@ -92,51 +115,89 @@ export const getDataset = async (datasetId, userId, organization, policy, owner)
         },
     });
     if (owner.id !== userId && !contract) {
-        await invoke(
-            organization,
-            process.env.FABRIC_CHAINCODE_NAME,
-            'createContract',
-            transient,
-            datasetId,
-        );
         const id = createSha256Hash(userId + datasetId);
-        transient.contractId = Buffer.from(id);
-        await invoke(
-            organization,
-            process.env.FABRIC_CHAINCODE_NAME,
-            'resolveContract',
-            transient,
-            datasetId,
-            true,
-        );
-        await Contract.create({
-            id,
-            datasetId,
-            userId,
-            proposal: undefined,
-            status: 'ACCEPTED',
-            policy,
-        });
-        if (owner && owner.email) {
-            sendMail(owner.email, mailSubject.newDownload, undefined, 'download');
+        try {
+            await invoke(
+                organization,
+                process.env.FABRIC_CHAINCODE_NAME,
+                'createContract',
+                transient,
+                datasetId,
+                'null',
+            );
+        } catch (err) {
+            logInfo('A contract already exists');
         }
-        delete transient.contractId;
+        try {
+            transient.contractId = Buffer.from(id);
+            await invoke(
+                organization,
+                process.env.FABRIC_CHAINCODE_NAME,
+                'resolveContract',
+                transient,
+                datasetId,
+                'true',
+            );
+            delete transient.contractId;
+            await createContract(id, datasetId, userId, policy, owner);
+        } catch (err) {
+            logInfo('The contract either does not exist or is already resolved');
+        }
     }
     const file = await invoke(
         organization,
         process.env.FABRIC_CHAINCODE_NAME,
-        'getDatasetFile',
+        'getDataset',
         transient,
         datasetId,
     );
-    const key = await invoke(
-        organization,
-        process.env.FABRIC_CHAINCODE_NAME,
-        'getDatasetKey',
-        transient,
-        datasetId,
-    );
-    return decryptSha256(key, file);
+    return file;
+};
+
+/**
+ * Format contributor name for citation
+ *
+ * @param {string} name Contributor name
+ * @returns {string} Formatted name
+ */
+const formatName = (name) => {
+    let contributor = name;
+    const parts = name.split(' ');
+    if (parts.length > 1) {
+        contributor = parts[parts.length - 1];
+        parts.pop();
+        if (parts.length > 0) {
+            contributor = contributor.concat(',');
+            parts.forEach((part) => {
+                contributor = contributor.concat(` ${part.charAt(0)}.`);
+            });
+        }
+    }
+    return contributor;
+};
+
+/**
+ * Generate a citation example
+ *
+ * @param {Object} user User object
+ * @param {Object} data Form data
+ * @returns {string} Citation example
+ */
+const generateExampleCitation = (user, data) => {
+    const datasetLinkPath = `${process.env.WEB_URL}/datasets`;
+    let nameSet = formatName(user.name);
+    if (data.contributors) {
+        if (data.contributors.length === 1) {
+            nameSet = formatName(data.contributors[0]);
+        } else if (data.contributors.length === 2) {
+            nameSet = `${formatName(data.contributors[0])} & ${formatName(data.contributors[1])}`;
+        } else if (data.contributors.length === 3) {
+            nameSet = `${formatName(data.contributors[0])}, ${formatName(data.contributors[1])} & ${formatName(data.contributors[2])}`;
+        } else if (data.contributors.length > 3) {
+            nameSet = `${formatName(data.contributors[0])}, ${formatName(data.contributors[1])}, ${formatName(data.contributors[2])} et al.`;
+        }
+    }
+    return `${nameSet} (${new Date().getFullYear()}), ${data.datasetId}, ${process.env.WEB_NAME}, ${datasetLinkPath}/${data.datasetId}`;
 };
 
 /**
@@ -147,22 +208,10 @@ export const getDataset = async (datasetId, userId, organization, policy, owner)
  * @param {Array} media Media array
  */
 const createDataset = async (user, data, media) => {
-    let firstName;
-    let lastName = user.name;
-    const parts = lastName.split(' ');
-    if (parts.length > 1) {
-        lastName = parts[parts.length - 1];
-        parts.pop();
-        firstName = `, ${parts.join(' ')}`;
-    }
-    let etAl;
-    if (data.contributors && data.contributors.length > 1) etAl = 'et al. ';
-    const consortiumName = 'ECKO Resurvey Data Consortium';
-    const datasetLinkPath = 'https://ecko.uib.no/datasets';
     const dataset = await Dataset.create({
         id: data.datasetId,
         status: 'INACTIVE',
-        bibliographicCitation: `${lastName}${firstName || ''} ${etAl || ''}(${new Date().getFullYear()}), ${data.datasetId}, ${consortiumName}, ${datasetLinkPath}/${data.datasetId}`,
+        bibliographicCitation: generateExampleCitation(user, data),
         geoReference: data.geoReference ? JSON.stringify(data.geoReference) : undefined,
         contributors: data.contributors,
         userId: user.id,
@@ -177,34 +226,50 @@ const createDataset = async (user, data, media) => {
 };
 
 /**
- * Submit dataset to the blockchain
+ * Submit dataset and metadata to the blockchain
  *
- * @param {Object} data Data object
+ * @param {Object} metadata Metadata object
+ * @param {Object} policy Policy object
+ * @param {Object} fileInfo File info object
  * @param {Object} transient Transient data
  * @param {Object} organization Organization object
  */
-const submitDataset = async (data, transient, organization) => {
+const submitDataset = async (metadata, policy, fileInfo, transient, organization) => {
     await invoke(
         organization,
         process.env.FABRIC_CHAINCODE_NAME,
-        'putDatasetFile',
+        'submitDataset',
         { invokedBy: transient.invokedBy, file: transient.file },
-        data.datasetId,
+        metadata.datasetId,
     );
     await invoke(
         organization,
         process.env.FABRIC_CHAINCODE_NAME,
-        'putDatasetKey',
-        { invokedBy: transient.invokedBy, key: transient.key },
-        data.datasetId,
-    );
-    await invoke(
-        organization,
-        process.env.FABRIC_CHAINCODE_NAME,
-        'createMetadata',
+        'submitMetadata',
         { invokedBy: transient.invokedBy },
-        JSON.stringify(data),
+        JSON.stringify(metadata),
+        JSON.stringify(policy),
+        JSON.stringify(fileInfo),
     );
+};
+
+/**
+ * Get object with policy and file info
+ *
+ * @param {Object} data Data object
+ * @returns {Object} Object with policy and file info
+ */
+const getPolicyAndFileInfo = (data) => {
+    const policy = {
+        policyId: data.policyId,
+        license: data.license,
+        terms: data.terms,
+    };
+    const fileInfo = {
+        fileName: data.fileName,
+        fileType: data.fileType,
+    };
+    return { policy, fileInfo };
 };
 
 /**
@@ -219,8 +284,7 @@ export const submitDatasetAndMetadata = async (req) => {
     data.policyId = uuidv4();
     data.fileName = req.files.dataset[0].filename;
     data.fileType = req.files.dataset[0].mimetype;
-    const key = generateKey();
-    promises.push(createTransient(req, key));
+    promises.push(createTransient(req));
     promises.push(Organization.findByPk(req.user.organization));
     if (req.files.media && req.files.media.length === 1) {
         promises.push(Media.findOne({
@@ -229,28 +293,31 @@ export const submitDatasetAndMetadata = async (req) => {
         promises.push(resizeImage(req.files.media[0], 128, 128, 90, 'thumbnail'));
     }
     const responses = await Promise.all(promises);
-    await submitDataset(data, responses[0], responses[1]);
+    const { policy, fileInfo } = getPolicyAndFileInfo(data);
+    await submitDataset(data, policy, fileInfo, responses[0], responses[1]);
     await createDataset(req.user, data, responses);
 };
 
 /**
- * Set dataset metadata
+ * Update dataset metadata
  *
  * @param {Object} body Request body
  * @param {Object} dataset Dataset object
  * @param {string} userId User ID
  * @param {Object} organization Organization object
  */
-export const setMetadata = async (body, dataset, userId, organization) => {
+export const updateMetadata = async (body, dataset, userId, organization) => {
     const data = parseFormData(body);
     data.datasetId = dataset.id;
     data.policyId = dataset.policy.policyId;
+    const { policy } = getPolicyAndFileInfo(data);
     await invoke(
         organization,
         process.env.FABRIC_CHAINCODE_NAME,
-        'createMetadata',
+        'updateMetadata',
         { invokedBy: Buffer.from(userId) },
         JSON.stringify(data),
+        JSON.stringify(policy),
     );
 };
 
@@ -267,6 +334,13 @@ export const removeDataset = async (datasetId, userId, organization) => {
         organization,
         process.env.FABRIC_CHAINCODE_NAME,
         'removeDataset',
+        transient,
+        datasetId,
+    );
+    await invoke(
+        organization,
+        process.env.FABRIC_CHAINCODE_NAME,
+        'setDatasetRemoved',
         transient,
         datasetId,
     );

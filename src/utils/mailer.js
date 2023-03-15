@@ -3,7 +3,6 @@ import fs from 'fs';
 
 // Default email subjects
 export const mailSubject = {
-    appRestart: 'ECKO - The client application has restarted',
     feedback: 'ECKO - A user has submitted feedback',
     verifyEmail: 'ECKO - Please confirm your e-mail address',
     newAffiliation: 'ECKO - New affiliation request',
@@ -13,23 +12,6 @@ export const mailSubject = {
     contractRejected: 'ECKO - Your proposal has been rejected',
     newDownload: 'ECKO - A new user has downloaded your dataset',
 };
-
-// Default email bodies
-export const mailBody = {
-    appRestart: '<p>The client application has restarted</p>',
-};
-
-/**
- * Create transporter object
- */
-const createTransport = () => nodemailer.createTransport({
-    host: process.env.NODEMAILER_HOST,
-    port: process.env.NODEMAILER_PORT,
-    secure: false,
-    tls: {
-        rejectUnauthorized: false,
-    },
-});
 
 /**
  * Send email
@@ -45,18 +27,27 @@ export const sendMail = async (recipients, subject, body, template, ...args) => 
     if (body) {
         htmlBody = body;
     } else {
-        htmlBody = fs.readFileSync(`${process.env.NODEMAILER_TEMPLATE_PATH}/${template}.html`, 'utf-8');
+        htmlBody = fs.readFileSync(`${process.env.MAIL_TEMPLATE_PATH}/${template}.html`, 'utf-8');
         if (args) {
             args.forEach((element, index) => {
                 htmlBody = htmlBody.replace(new RegExp(`string${index}`, 'g'), element);
             });
         }
     }
-    const info = await createTransport().sendMail({
-        from: process.env.NODEMAILER_FROM,
+    const transporter = nodemailer.createTransport({
+        service: process.env.MAIL_SERVICE,
+        host: process.env.MAIL_HOST,
+        port: process.env.MAIL_PORT,
+        secure: false,
+        auth: {
+            user: process.env.MAIL_USER,
+            pass: process.env.MAIL_PASS,
+        },
+    });
+    await transporter.sendMail({
+        from: process.env.MAIL_FROM,
         to: recipients,
         subject,
         html: htmlBody,
     });
-    return info;
 };

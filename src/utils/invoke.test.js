@@ -65,7 +65,7 @@ describe('call function invoke', () => {
                 'func1',
                 '{}',
                 ...[],
-            )).rejects.toThrowError("ENOENT: no such file or directory, open 'undefined/certs/undefined-tlscert.crt'");
+            )).rejects.toThrowError("ENOENT: no such file or directory, open 'undefined/undefined-tlscert.crt'");
         });
     });
 });

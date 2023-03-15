@@ -14,7 +14,10 @@ coverage/
 Thumbs.db
 
 # Fabric
-wallet/
+wallet/*.id
+
+# Whitelist
+!*.keep
 
 # Env
 .env

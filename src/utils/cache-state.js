@@ -57,27 +57,18 @@ const updateMetadata = async (arr) => {
 };
 
 /**
- * Get metadata for datasets from state database
+ * Get metadata for a dataset from the state database
  *
  * @param {Object} organization Organization object
- * @param {Array} datasets Datasets (or undefined)
+ * @param {string} datasetId Dataset ID (or undefined to get all)
  */
-const getMetadata = async (organization, datasets) => {
-    let ids;
-    if (datasets) {
-        ids = `"$in": ${JSON.stringify(datasets.map((dataset) => dataset.id))}`;
-    } else {
-        ids = '"$gt": null';
-    }
-    const queryString = '{\n'
-        + '   "use_index": "indexDoc/indexId",\n'
-        + '   "selector": {\n'
-        + '      "_id": {\n'
-        + `         ${ids}\n`
-        + '      }\n'
-        + '   }\n'
-        + '}';
-    const arr = await query(organization, process.env.FABRIC_CHAINCODE_NAME, 'query', queryString);
+const getMetadata = async (organization, datasetId) => {
+    const arr = await query(
+        organization,
+        process.env.FABRIC_CHAINCODE_NAME,
+        'getMetadata',
+        datasetId || 'null',
+    );
     return JSON.parse(arr);
 };
 
@@ -87,7 +78,7 @@ const getMetadata = async (organization, datasets) => {
 const cacheState = () => new cron.CronJob(`0 */${process.env.CRON_INTERVAL_MIN} * * * *`, async () => {
     try {
         logInfo('Running state cache job...');
-        const organization = await Organization.findByPk(process.env.DEFAULT_ORG_ID);
+        const organization = await Organization.findByPk(process.env.FABRIC_DEFAULT_ORG);
         const metadata = await getMetadata(organization);
         await updateMetadata(metadata);
         logInfo('State cache job succeeded');

@@ -32,7 +32,9 @@ export const decryptSha256 = (key, encrypted) => {
 };
 
 /**
- * Generate secret key
+ * Generate key
+ *
+ * @returns {string} Key
  */
 export const generateKey = () => crypto.randomBytes(32).toString('hex');
 
@@ -45,20 +47,17 @@ export const generateKey = () => crypto.randomBytes(32).toString('hex');
 export const createSha256Hash = (value) => crypto.createHash('sha256').update(value).digest('hex');
 
 /**
- * Encrypt file and create transient data for Fabric
+ * Create transient data object
  *
- * @param {string} encryptionKey Encryption key
- * @returns {Object} Object with invokedBy, key and ecrypted file
+ * @param {Object} req HTTP request
+ * @returns {Object} Object with invokedBy and file
  */
-export const createTransient = (req, encryptionKey) => new Promise((resolve, reject) => {
+export const createTransient = (req) => new Promise((resolve, reject) => {
     fs.readFile(req.files.dataset[0].path, (err, data) => {
         if (err) {
             reject(err);
         } else {
-            const encryptedFile = encryptSha256(encryptionKey, Buffer.from(data));
-            const invokedBy = Buffer.from(req.user.id);
-            const key = Buffer.from(encryptionKey);
-            resolve({ invokedBy, key, file: encryptedFile });
+            resolve({ invokedBy: Buffer.from(req.user.id), file: data });
         }
     });
 });

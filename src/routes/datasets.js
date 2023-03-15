@@ -14,7 +14,7 @@ import {
     getDatasets,
     getUserDatasets,
     removeDataset,
-    setMetadata,
+    updateMetadata,
     submitDatasetAndMetadata,
 } from '../services/datasets.js';
 
@@ -92,7 +92,7 @@ router.put('/:datasetId', isVerified, upload, [
         const organization = await Organization.findByPk(req.user.organization);
         if (organization && dataset && dataset.status === 'ACTIVE' && dataset.metadata && dataset.policy) {
             if (dataset.userId === req.user.id) {
-                await setMetadata(req.body, dataset, req.user.id, organization);
+                await updateMetadata(req.body, dataset, req.user.id, organization);
                 res.sendStatus(200);
             } else {
                 res.sendStatus(403);
@@ -113,6 +113,7 @@ router.post('/', isVerified, upload, async (req, res) => {
     if (req.files && req.files.dataset && req.files.dataset.length === 1) {
         try {
             await submitDatasetAndMetadata(req);
+            removeFiles(req.files);
             res.sendStatus(200);
         } catch (err) {
             logError('Could not submit dataset', err);
